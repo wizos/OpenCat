@@ -1569,6 +1569,9 @@ class SkillComposer:
                  ]
         file = asksaveasfile(filetypes=files, defaultextension='.md')
 
+        # Store original activeFrame for special handling
+        originalActiveFrame = self.activeFrame
+        
         if self.activeFrame + 1 == self.totalFrame:
             self.getWidget(self.activeFrame, cSet).config(text='=',  # +txt('Set')
                                                           font='sans 12')
@@ -1576,7 +1579,7 @@ class SkillComposer:
             self.activeFrame = 0
         skillData = list()
         loopStructure = list()
-        period = self.totalFrame - self.activeFrame
+        period = self.totalFrame
         if self.model == 'DoF16':
             frameSize = 12
             copyFrom = 8
@@ -1592,7 +1595,6 @@ class SkillComposer:
             copyFrom = 4
             frameSize = 16
         angleRatio = 1
-        startFrame = self.activeFrame
         inv_triggerAxis = {txt(v): k for k, v in triggerAxis.items()}
         for f in range(0, self.totalFrame):
             frame = self.frameList[f]
@@ -1600,7 +1602,7 @@ class SkillComposer:
             if max(self.frameData[4:20]) > 125 or min(self.frameData[4:20]) < -125:
                 angleRatio = 2
             if self.frameData[3] == 1:
-                loopStructure.append(f - startFrame)
+                loopStructure.append(f)
             if self.getWidget(f, cStep).get() == txt('max') or int(self.getWidget(f, cStep).get())>127:
                 self.frameData[20] = 0
             else:
@@ -1629,7 +1631,7 @@ class SkillComposer:
             loopStructure = [0,0]
         if len(loopStructure) > 2:
             for l in range(1, len(loopStructure) - 1):
-                f = loopStructure[l] + startFrame
+                f = loopStructure[l]
                 frame = self.frameList[f]
                 frame[2][3] = 0
                 self.getWidget(f, cLoop).deselect()
@@ -1687,8 +1689,31 @@ class SkillComposer:
         if self.gaitOrBehavior.get() == txt('Behavior'):
             skillData.insert(0, [loopStructure[0], loopStructure[-1], int(self.loopRepeat.get())])
         skillData.insert(0, [period, 0, 0, angleRatio])
-        flat_list = [item for sublist in skillData for item in sublist]
-        print(flat_list)
+        
+        # Handle special case: when activeFrame is in middle, create partial data for robot
+        isMiddleFrame = originalActiveFrame != 0 and originalActiveFrame + 1 != self.totalFrame and originalActiveFrame < self.totalFrame
+        if isMiddleFrame:
+            # Calculate partial parameters
+            partialPeriod = self.totalFrame - originalActiveFrame
+            if period < 0:  # Behavior
+                partialPeriod = -partialPeriod
+                
+                # Adjust loop parameters
+                partialLoopStart = max(0, loopStructure[0] - originalActiveFrame)
+                partialLoopEnd = max(0, loopStructure[1] - originalActiveFrame)
+                partialRepeat = int(self.loopRepeat.get()) if loopStructure[1] >= originalActiveFrame else 0
+                
+                # Build partial array: [header, loop_info, frames_from_activeFrame...]
+                partialSkillData = [[partialPeriod, 0, 0, angleRatio], [partialLoopStart, partialLoopEnd, partialRepeat]] + skillData[2 + originalActiveFrame:]
+            else:  # Gait
+                # Build partial array: [header, frames_from_activeFrame...]
+                partialSkillData = [[partialPeriod, 0, 0, angleRatio]] + skillData[1 + originalActiveFrame:]
+            
+            flat_list = [item for sublist in partialSkillData for item in sublist]
+        else:
+            # Normal case: send complete array
+            flat_list = [item for sublist in skillData for item in sublist]
+        print("Sending to robot:", flat_list)
 
         send(ports, ['i', 0.1])
         res = send(ports, ['K', flat_list, 0], 0)

@@ -114,12 +114,45 @@ RegularMacSet = {
     "imgWidth": 200,
     "imgRowSpan": 2
 }
+
+DoF16WinSet = {
+    "sliderW": 320,
+    "sixW": 6,
+    "rowUnbindButton": 5,
+    "rowJoint1": 11,
+    "sliderLen": 150,
+    "rSpan": 3,
+    "rowJoint2": 2,
+    "rowFrameImu": 6,
+    "imuSliderLen": 125,
+    "schedulerHeight": 310,
+    "rowFrameImage": 3,
+    "imgWidth": 450,         # Increased to 1.5x (300 * 1.5 = 450) for even better visibility
+    "imgRowSpan": 4          # Increased row span to accommodate larger image
+}
+
+DoF16MacSet = {
+    "sliderW": 338,
+    "sixW": 5,
+    "rowUnbindButton": 5,
+    "rowJoint1": 11,
+    "sliderLen": 150,
+    "rSpan": 3,
+    "rowJoint2": 2,
+    "rowFrameImu": 6,
+    "imuSliderLen": 125,
+    "schedulerHeight": 310,
+    "rowFrameImage": 3,
+    "imgWidth": 420,         # Increased to 1.5x (280 * 1.5 = 420) for even better visibility on Mac
+    "imgRowSpan": 4          # Increased row span to accommodate larger image
+}
+
 parameterWinSet = {
     "Nybble": RegularWinSet,
     "Bittle": RegularWinSet,
     # "BittleX": RegularWinSet,
     "BittleX+Arm": BittleRWinSet,
-    "DoF16": RegularWinSet,
+    "DoF16": DoF16WinSet,
 }
 
 parameterMacSet = {
@@ -127,7 +160,7 @@ parameterMacSet = {
     "Bittle": RegularMacSet,
     # "BittleX": RegularMacSet,
     "BittleX+Arm": BittleRMacSet,
-    "DoF16": RegularMacSet,
+    "DoF16": DoF16MacSet,
 }
 
 # word_file = '/usr/share/dict/words'

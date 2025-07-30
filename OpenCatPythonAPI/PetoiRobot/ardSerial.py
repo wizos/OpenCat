@@ -5,12 +5,18 @@ import struct
 import sys
 import time
 import logging
-from .SerialCommunication import *  # module SerialCommunication.py
+try:
+    from .SerialCommunication import *  # module SerialCommunication.py
+except ImportError:
+    from SerialCommunication import *  # module SerialCommunication.py
 import platform
 import copy
 import threading
 import os
-from . import config
+try:
+    from . import config
+except ImportError:
+    import config
 import glob
 import re
 
@@ -76,16 +82,22 @@ def serialWriteNumToByte(port, token, var=None):  # Only to be used for c m u b 
         else:
             skillHeader = 7
             
+        # Determine frame size based on robot model
+            if hasattr(config, 'model_') and config.model_ and 'Chero' in config.model_:
+            maxJoints = 6
+        else:
+            maxJoints = 16
+            
         if period > 1:
             frameSize = 8  # gait
         elif period == 1:
-            frameSize = 16  # posture
+            frameSize = maxJoints  # posture
         else:
             frameSize = 20  # behavior
     # divide large angles by 2
         angleRatio = 1
         for row in range(abs(period)):
-            for angle in var[skillHeader + row * frameSize:skillHeader + row * frameSize + min(16,frameSize)]:
+            for angle in var[skillHeader + row * frameSize:skillHeader + row * frameSize + min(maxJoints,frameSize)]:
                 if angle > 125 or angle < -125:
                     angleRatio = 2
                     break
@@ -95,7 +107,7 @@ def serialWriteNumToByte(port, token, var=None):  # Only to be used for c m u b 
         if angleRatio == 2:
             var[3] = 2
             for row in range(abs(period)):
-                for i in range(skillHeader + row * frameSize,skillHeader + row * frameSize + min(16,frameSize)):
+                for i in range(skillHeader + row * frameSize,skillHeader + row * frameSize + min(maxJoints,frameSize)):
                     var[i] //=2
             printH('rescaled:\n',var)
             
@@ -274,12 +286,20 @@ def splitTaskForLargeAngles(task):
         var = task[1]
         indexedList = list()
         if token == 'L':
-            for i in range(4):
-                for j in range(4):
-                    angle = var[4 * j + i]
+                    # Determine grid size based on robot model
+            if hasattr(config, 'model_') and config.model_ and 'Chero' in config.model_:
+            gridSize = 2  # 2x3 grid for Chero
+            maxJoints = 6
+        else:
+            gridSize = 4  # 4x4 grid for other robots
+            maxJoints = 16
+                
+            for i in range(gridSize):
+                for j in range(gridSize):
+                    angle = var[gridSize * j + i]
                     if angle < -125 or angle > 125:
-                        indexedList += [4 * j + i, angle]
-                        var[4 * j + i] = max(min(angle, 125), -125)
+                        indexedList += [gridSize * j + i, angle]
+                        var[gridSize * j + i] = max(min(angle, 125), -125)
             if len(var):
                 queue.append(['L', var, task[-1]])
             if len(indexedList):
@@ -409,6 +429,25 @@ zeroNybble = [
     1, 0, 0, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ]
 
+balanceDoF6 = [
+    1, 0, 0, 1,
+    0, 0, 0, 0, 0, 0]
+buttUpDoF6 = [
+    1, 0, 15, 1,
+    0, 0, -70, -70, -20, -20]
+restDoF6 = [
+    1, 0, 0, 1,
+    30, 0, 60, 60, -60, -60]
+sitDoF6 = [
+    1, 0, -20, 1,
+    60,50, 30, 30, -50, -50]
+strDoF6 = [
+    1, 0, 0, 1,
+    10, 70, -75, -75, 75, 75]
+zeroDoF6 = [
+    1, 0, 0, 1,
+    0, 0, 0, 0, 0, 0]
+
 postureTableBittle = {
     "balance": balance,
     "buttUp": buttUp,
@@ -460,11 +499,22 @@ postureTableDoF16 = {
     "zero": zero
 }
 
+# DoF6 posture data - independent arrays for fine-tuning
+postureTableDoF6 = {
+    "balance": balanceDoF6,
+    "buttUp": buttUpDoF6,
+    "rest": restDoF6,
+    "sit": sitDoF6,
+    "str": strDoF6,
+    "zero": zeroDoF6
+}
+
 postureDict = {
     'Nybble': postureTableNybble,
     'Bittle': postureTableBittle,
     'BittleX+Arm': postureTableBittleR,
-    'DoF16': postureTableDoF16
+    'DoF16': postureTableDoF16,
+    'Chero': postureTableDoF6
 }
 model = 'Bittle'
 postureTable = postureDict[model]
@@ -475,11 +525,30 @@ def schedulerToSkill(ports, testSchedule):
     newSkill = []
     outputStr = ""
 
+    # Determine the correct posture table and number of joints based on model
+    global postureTable
+    if hasattr(config, 'model_') and config.model_:
+        if 'Chero' in config.model_:
+            currentPostureTable = postureDict['Chero']
+            numJoints = 6
+        elif 'Nybble' in config.model_:
+            currentPostureTable = postureDict['Nybble']
+            numJoints = 16
+        elif 'DoF16' in config.model_:
+            currentPostureTable = postureDict['DoF16']
+            numJoints = 16
+        else:  # Bittle or BittleX+Arm
+            currentPostureTable = postureDict['Bittle']
+            numJoints = 16
+    else:
+        currentPostureTable = postureTable
+        numJoints = 16
+
     for task in testSchedule:  # execute the tasks in the testSchedule
         print(task)
         token = task[0][0]
-        if token == 'k' and task[0][1:] in postureTable:
-            currentRow = postureTable[task[0][1:]][-16:]
+        if token == 'k' and task[0][1:] in currentPostureTable:
+            currentRow = currentPostureTable[task[0][1:]][-numJoints:]
             skillRow = copy.deepcopy(currentRow)
             compactSkillData.append(skillRow + [8, int(task[1] * 1000 / 500), 0, 0])
             newSkill = newSkill + skillRow + [8, int(task[1] * 1000 / 500), 0, 0]
@@ -493,7 +562,7 @@ def schedulerToSkill(ports, testSchedule):
             compactSkillData.append(skillRow + [8, int(task[2] * 1000 / 500), 0, 0])
             newSkill = newSkill + skillRow + [8, int(task[2] * 1000 / 500), 0, 0]
         elif token == 'L':
-            skillRow = copy.deepcopy(task[1][:16])
+            skillRow = copy.deepcopy(task[1][:numJoints])
             compactSkillData.append(skillRow + [8, int(task[2] * 1000 / 500), 0, 0])
             newSkill = newSkill + skillRow + [8, int(task[2] * 1000 / 500), 0, 0]
 
@@ -514,7 +583,7 @@ def schedulerToSkill(ports, testSchedule):
     for row in compactSkillData:
         if min(row) < -125 or max(row) > 125:
             angleRatio = 2
-        print(('{:>4},' * 20).format(*row))
+        print(('{:>4},' * (numJoints + 4)).format(*row))
     print('};')
     newSkill = list(map(lambda x: x // angleRatio, newSkill))
     newSkill = [-len(compactSkillData), 0, 0, angleRatio, 0, 0, 0] + newSkill
@@ -522,16 +591,29 @@ def schedulerToSkill(ports, testSchedule):
     #    sendTaskParallel(['K', newSkill, 1])
     send(ports, ['K', newSkill, 1])
 
+def updatePostureTable():
+    global postureTable
+    if hasattr(config, 'model_') and config.model_:
+        if 'Chero' in config.model_:
+            postureTable = postureDict['Chero']
+        elif 'Nybble' in config.model_:
+            postureTable = postureDict['Nybble']
+        elif 'DoF16' in config.model_:
+            postureTable = postureDict['DoF16']
+        else:  # Bittle or BittleX+Arm
+            postureTable = postureDict['Bittle']
+
 def getModelAndVersion(result):
     if result != -1:
         parse = result[1].replace('\r','').split('\n')
         for l in range(len(parse)):
-            if 'Nybble' in parse[l] or 'Bittle' in parse[l] or 'DoF16' in parse[l]:
+            if 'Nybble' in parse[l] or 'Bittle' in parse[l] or 'DoF16' in parse[l] or 'Chero' in parse[l]:
                 config.model_ = parse[l]
                 config.version_ = parse [l+1]
                 config.modelList += [config.model_]
                 print(config.model_)
                 print(config.version_)
+                updatePostureTable()
                 return
     config.model_ = 'Bittle'
     config.version_ = 'Unknown'

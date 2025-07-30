@@ -34,14 +34,15 @@ axisDisable = {
     'Bittle': [0, 5],
     # 'BittleX': [0, 5],
     'BittleX+Arm': [0, 5],
-    'DoF16' : []
-
+    'DoF16' : [],
+    'Chero' : []
 }
 
 jointConfig = {
     'Nybble': '><',
     'Bittle': '>>',
-    'DoF16': '>>'
+    'DoF16': '>>',
+    'Chero': '>>'
 }
 triggerAxis = {
     0: 'None',
@@ -96,7 +97,7 @@ RegularWinSet = {
     "schedulerHeight": 310,
     "rowFrameImage": 3,
     "imgWidth": 200,
-    "imgRowSpan": 2
+    "imgRowSpan": 2  # Will be dynamically calculated based on image aspect ratio
 }
 
 RegularMacSet = {
@@ -112,7 +113,7 @@ RegularMacSet = {
     "schedulerHeight": 310,
     "rowFrameImage": 3,
     "imgWidth": 200,
-    "imgRowSpan": 2
+    "imgRowSpan": 2  # Will be dynamically calculated based on image aspect ratio
 }
 
 DoF16WinSet = {
@@ -147,12 +148,45 @@ DoF16MacSet = {
     "imgRowSpan": 4          # Increased row span to accommodate larger image
 }
 
+CheroWinSet = {
+    "sliderW": 320,
+    "sixW": 6,
+    "rowUnbindButton": 5,
+    "rowJoint1": 11,
+    "sliderLen": 150,
+    "rSpan": 3,
+    "rowJoint2": 2,
+    "rowFrameImu": 6,
+    "imuSliderLen": 125,
+    "schedulerHeight": 310,
+    "rowFrameImage": 3,
+    "imgWidth": 200,
+    "imgRowSpan": 2
+}
+
+CheroMacSet = {
+    "sliderW": 338,
+    "sixW": 5,
+    "rowUnbindButton": 5,
+    "rowJoint1": 11,
+    "sliderLen": 150,
+    "rSpan": 3,
+    "rowJoint2": 2,
+    "rowFrameImu": 6,
+    "imuSliderLen": 125,
+    "schedulerHeight": 310,
+    "rowFrameImage": 3,
+    "imgWidth": 200,
+    "imgRowSpan": 2
+}
+
 parameterWinSet = {
     "Nybble": RegularWinSet,
     "Bittle": RegularWinSet,
     # "BittleX": RegularWinSet,
     "BittleX+Arm": BittleRWinSet,
     "DoF16": DoF16WinSet,
+    "Chero": CheroWinSet,
 }
 
 parameterMacSet = {
@@ -161,6 +195,7 @@ parameterMacSet = {
     # "BittleX": RegularMacSet,
     "BittleX+Arm": BittleRMacSet,
     "DoF16": DoF16MacSet,
+    "Chero": CheroMacSet,
 }
 
 # word_file = '/usr/share/dict/words'
@@ -370,56 +405,121 @@ class SkillComposer:
         self.frameController = Frame(self.window)
         self.frameController.grid(row=0, column=0, rowspan=9, padx=(5, 10), pady=5)
         label = Label(self.frameController, text=txt('Joint Controller'), font=self.myFont)
-        label.grid(row=0, column=0, columnspan=8)
+        # Adjust columnspan for Chero's 5-column layout
+        if self.model == 'Chero':
+            label.grid(row=0, column=0, columnspan=5)
+        else:
+            label.grid(row=0, column=0, columnspan=8)
         self.controllerLabels.append(label)
         unbindButton = Button(self.frameController, text=txt('Unbind All'), fg='blue', command=self.unbindAll)
         rowUnbindButton = self.parameterSet['rowUnbindButton']    # The row number where the unbind button is located
-        unbindButton.grid(row=rowUnbindButton, column=3, columnspan=2)
+        # Adjust Unbind All button position for Chero's 5-column layout
+        if self.model == 'Chero':
+            unbindButton.grid(row=rowUnbindButton, column=2, columnspan=1)  # Center it in column 2
+        else:
+            unbindButton.grid(row=rowUnbindButton, column=3, columnspan=2)
         self.controllerLabels.append(unbindButton)
         
         centerWidth = 2
-        for i in range(16):
+        
+        # For Chero, show 6 joints (0, 1, 2, 3, 4, 5) - independent system
+        if self.model == 'Chero':
+            numJoints = 6
+        else:
+            numJoints = 16
+            
+        for i in range(numJoints):
             cSPAN = 1
-            if i < 4:
-                tickDirection = 1
-                cSPAN = 4
-                if i < 2:
+            if self.model == 'Chero':
+                # Chero layout: joints 0,1 horizontal, joints 2,3,4,5 vertical (like DoF16 joints 8,9,10,11)
+                if i < 2:  # Joints 0, 1 - horizontal
+                    tickDirection = 1
+                    cSPAN = 2  # Each horizontal slider spans 2 columns
                     ROW = 0
-                else:
-                    ROW = self.parameterSet['rowJoint1']    # The row number of the label with joint number 2 and 3
-
-                if 0 < i < 3:
-                    COL = 4
-                else:
-                    COL = 0
-                rSPAN = 1
-                ORI = HORIZONTAL
-                LEN = self.parameterSet['sliderW']
+                    if i == 0:
+                        COL = 0  # Joint 0: columns 0-1
+                    else:
+                        COL = 3  # Joint 1: columns 3-4
+                    rSPAN = 1
+                    ORI = HORIZONTAL
+                    LEN = self.parameterSet['sliderW'] // 2  # Make slider length shorter too
+                else:  # Joints 2, 3, 4, 5 - vertical (like DoF16 joints 8,9,10,11)
+                    tickDirection = -1
+                    # Map Chero joints 2,3,4,5 to DoF16 layout positions 8,9,10,11
+                    if i == 2:  # Joint 2 -> position like DoF16 joint 8 (left front)
+                        leftQ = True
+                        frontQ = True
+                    elif i == 3:  # Joint 3 -> position like DoF16 joint 9 (right front)
+                        leftQ = False
+                        frontQ = True
+                    elif i == 4:  # Joint 4 -> position like DoF16 joint 10 (right back)
+                        leftQ = False
+                        frontQ = False
+                    else:  # Joint 5 -> position like DoF16 joint 11 (left back)
+                        leftQ = True
+                        frontQ = False
+                    
+                    LEN = self.parameterSet['sliderLen']
+                    rSPAN = self.parameterSet['rSpan']
+                    ROW = self.parameterSet['rowJoint2'] + (1 - frontQ) * (rSPAN + 2)
+                    
+                    # Use specific columns: joints 2,5 at column 0; joints 3,4 at column 4
+                    if leftQ:
+                        COL = 0  # Joints 2,5: column 0
+                    else:
+                        COL = 4  # Joints 3,4: column 4
+                    ORI = VERTICAL
             else:
-                tickDirection = -1
-                leftQ = (i - 1) % 4 > 1
-                frontQ = i % 4 < 2
-                # upperQ = i / 4 < 3
+                # Original logic for other models
+                if i < 4:
+                    tickDirection = 1
+                    cSPAN = 4
+                    if i < 2:
+                        ROW = 0
+                    else:
+                        ROW = self.parameterSet['rowJoint1']    # The row number of the label with joint number 2 and 3
 
-                LEN = self.parameterSet['sliderLen']    # The length of the slider rail corresponding to joint numbers 4 to 15
-                rSPAN = self.parameterSet['rSpan']    # The number of rows occupied by the slider rail corresponding to joint numbers 4 to 15
-                ROW = self.parameterSet['rowJoint2'] + (1 - frontQ) * (rSPAN + 2)    # The row number of the label with joint number 4 or 15 is located
-
-                if leftQ:
-                    COL = 3 - i // 4
+                    if 0 < i < 3:
+                        COL = 4
+                    else:
+                        COL = 0
+                    rSPAN = 1
+                    ORI = HORIZONTAL
+                    LEN = self.parameterSet['sliderW']
                 else:
-                    COL = centerWidth + 2 + i // 4
-                ORI = VERTICAL
+                    tickDirection = -1
+                    leftQ = (i - 1) % 4 > 1
+                    frontQ = i % 4 < 2
+                    # upperQ = i / 4 < 3
+
+                    LEN = self.parameterSet['sliderLen']    # The length of the slider rail corresponding to joint numbers 4 to 15
+                    rSPAN = self.parameterSet['rSpan']    # The number of rows occupied by the slider rail corresponding to joint numbers 4 to 15
+                    ROW = self.parameterSet['rowJoint2'] + (1 - frontQ) * (rSPAN + 2)    # The row number of the label with joint number 4 or 15 is located
+
+                    if leftQ:
+                        COL = 3 - i // 4
+                    else:
+                        COL = centerWidth + 2 + i // 4
+                    ORI = VERTICAL
 
             stt = NORMAL
             if i in NaJoints[self.model]:
                 clr = 'light yellow'
             else:
                 clr = 'yellow'
-            if i in range(8, 12):
-                sideLabel = txt(sideNames[i % 8]) + '\n'
+            if self.model == 'Chero':
+                # For Chero, joints 2,3,4,5 should have side labels corresponding to DoF16 joints 8,9,10,11
+                if i in range(2, 6):  # Joints 2,3,4,5
+                    # Map Chero joints 2,3,4,5 to DoF16 joints 8,9,10,11 labels
+                    dof16_index = i + 6  # 2->8, 3->9, 4->10, 5->11
+                    sideLabel = txt(sideNames[dof16_index % 8]) + '\n'
+                else:
+                    sideLabel = ''
             else:
-                sideLabel = ''
+                if i in range(8, 12):
+                    sideLabel = txt(sideNames[i % 8]) + '\n'
+                else:
+                    sideLabel = ''
             label = Label(self.frameController,
                           text=sideLabel + '(' + str(i) + ')\n' + txt(self.scaleNames[i]))
 
@@ -429,14 +529,19 @@ class SkillComposer:
                               length=LEN, tickinterval=90, resolution=1, repeatdelay=100, repeatinterval=100,
                               command=lambda value, idx=i: self.setAngle(idx, value))
             sliderBar.set(0)
-            label.grid(row=ROW + 1, column=COL, columnspan=cSPAN, pady=2, sticky='s')
+            if self.model == 'Chero' and i >= 2:
+                # For Chero vertical sliders, use smaller columnspan to prevent overlap
+                label.grid(row=ROW + 1, column=COL, columnspan=1, pady=2, sticky='s')
+            else:
+                label.grid(row=ROW + 1, column=COL, columnspan=cSPAN, pady=2, sticky='s')
             sliderBar.grid(row=ROW + 2, column=COL, rowspan=rSPAN, columnspan=cSPAN)
 
             self.sliders.append(sliderBar)
             self.values.append(value)
             self.controllerLabels.append(label)
 
-            if i in range(16):
+            # Create binder buttons for all joints (including Chero)
+            if i in range(numJoints):
                 binderValue = IntVar()
                 values = {"+": 1,
                           "-": -1, }
@@ -445,10 +550,27 @@ class SkillComposer:
                                          value=list(values.values())[d], indicator=0, state=stt,
                                          background="light blue", width=1,
                                          command=lambda joint=i: self.updateRadio(joint))
-                    if i < 4:
-                        button.grid(row=ROW + 1, column=COL + (1 - d) * (cSPAN - 1), sticky='s')
+                    if self.model == 'Chero':
+                        # For Chero, all joints are vertical sliders (except 0,1 which are horizontal)
+                        if i < 2:  # Joints 0,1 are horizontal - buttons should be in label row at specific positions
+                            if d == 0:  # + button
+                                if i == 0:
+                                    button.grid(row=ROW + 1, column=1, sticky='e')  # + button at right edge of column 1
+                                else:  # i == 1
+                                    button.grid(row=ROW + 1, column=4, sticky='e')  # + button at right edge of column 4
+                            else:  # - button
+                                if i == 0:
+                                    button.grid(row=ROW + 1, column=0, sticky='w')  # - button at left edge of column 0
+                                else:  # i == 1
+                                    button.grid(row=ROW + 1, column=3, sticky='w')  # - button at left edge of column 3
+                        else:  # Joints 2,3,4,5 are vertical
+                            button.grid(row=ROW + 2 + d * (rSPAN - 1), column=COL, sticky='ns'[d])
                     else:
-                        button.grid(row=ROW + 2 + d * (rSPAN - 1), column=COL, sticky='ns'[d])
+                        # Original logic for other models
+                        if i < 4:
+                            button.grid(row=ROW + 1, column=COL + (1 - d) * (cSPAN - 1), sticky='s')
+                        else:
+                            button.grid(row=ROW + 2 + d * (rSPAN - 1), column=COL, sticky='ns'[d])
                     binderValue.set(0)
                     if d == 0:
                         tip(button, txt('tipBinder'))
@@ -460,7 +582,13 @@ class SkillComposer:
         self.frameImu = Frame(self.frameController)
         rowFrameImu = self.parameterSet['rowFrameImu']    # The row number of the IMU button frame is located
         sliderLen = self.parameterSet['imuSliderLen']     # The length of the IMU slider rail
-        self.frameImu.grid(row=rowFrameImu, column=3, rowspan=6, columnspan=2)
+        # Adjust IMU frame layout based on model
+        if self.model == 'Chero':
+            # For Chero, use columns 1-3 in 5-column layout
+            self.frameImu.grid(row=rowFrameImu, column=1, rowspan=6, columnspan=3)
+        else:
+            # For other models, keep original layout
+            self.frameImu.grid(row=rowFrameImu, column=3, rowspan=6, columnspan=2)
         for i in range(6):
             frm = -40
             to2 = 40
@@ -767,14 +895,29 @@ class SkillComposer:
         imageFrame.image = image
         return imageFrame
 
+
+
     def placeProductImage(self):
         rowFrameImage = self.parameterSet['rowFrameImage']    # The row number of the image frame is located
         imgWidth = self.parameterSet['imgWidth']              # The width of image
         rowSpan = self.parameterSet['imgRowSpan']             # The number of lines occupied by the image frame
 
-        self.frameImage = self.createImage(self.frameController, resourcePath + self.model + '.jpeg', imgWidth)
-
-        self.frameImage.grid(row=rowFrameImage, column=3, rowspan=rowSpan, columnspan=2)
+        # For Chero, use Chero.jpeg file
+        if self.model == 'Chero':
+            imgFile = resourcePath + 'Chero.jpeg'
+        else:
+            imgFile = resourcePath + self.model + '.jpeg'
+            
+        # Create image normally
+        self.frameImage = self.createImage(self.frameController, imgFile, imgWidth)
+        
+        # Place image at the correct position with proper columnspan for different models
+        if self.model == 'Chero':
+            # For Chero, use columns 1-3 in 5-column layout for a more compact layout
+            self.frameImage.grid(row=rowFrameImage, column=1, rowspan=rowSpan, columnspan=3)
+        else:
+            # For other models (DoF16, etc.), use the original position
+            self.frameImage.grid(row=rowFrameImage, column=3, rowspan=rowSpan, columnspan=2)
 
     def changeLan(self, l):
         global language
@@ -793,12 +936,24 @@ class SkillComposer:
             self.controllerLabels[1].config(text=txt('Unbind All'))
             for i in range(6):
                 self.controllerLabels[2 + 16 + i].config(text=txt(sixAxisNames[i]))
-            for i in range(16):
-                if i in range(8, 12):
-                    sideLabel = txt(sideNames[i % 8]) + '\n'
-                else:
-                    sideLabel = '\n'
-                self.controllerLabels[2 + i].config(text=sideLabel + '(' + str(i) + ')\n' + txt(self.scaleNames[i]))
+            
+            # For Chero, update the 6 joints
+            if self.model == 'Chero':
+                for i in range(6):
+                    if i in range(2, 6):  # Joints 2,3,4,5 should have side labels
+                        # Map Chero joints 2,3,4,5 to DoF16 joints 8,9,10,11 labels
+                        dof16_index = i + 6  # 2->8, 3->9, 4->10, 5->11
+                        sideLabel = txt(sideNames[dof16_index % 8]) + '\n'
+                    else:
+                        sideLabel = '\n'
+                    self.controllerLabels[2 + i].config(text=sideLabel + '(' + str(i) + ')\n' + txt(self.scaleNames[i]))
+            else:
+                for i in range(16):
+                    if i in range(8, 12):
+                        sideLabel = txt(sideNames[i % 8]) + '\n'
+                    else:
+                        sideLabel = '\n'
+                    self.controllerLabels[2 + i].config(text=sideLabel + '(' + str(i) + ')\n' + txt(self.scaleNames[i]))
 
                 for d in range(2):
                     if d == 0:
@@ -872,6 +1027,8 @@ class SkillComposer:
 
             if self.model == 'BittleX+Arm':
                 self.scaleNames = BittleRScaleNames
+            elif self.model == 'Chero':
+                self.scaleNames = RegularScaleNames  # Use regular scale names for Chero
             else:
                 self.scaleNames = RegularScaleNames
 
@@ -1020,15 +1177,27 @@ class SkillComposer:
         frame = self.frameList[f]
 
         indexedList = list()
-        for i in range(16):
-            if self.frameData[4 + i] != frame[2][4 + i]:
-                indexedList += [i, frame[2][4 + i]]
+        if self.model == 'Chero':
+            # For Chero, check only the actual joint positions
+            chero_positions = [4, 5, 12, 13, 14, 15]  # joints 0,1,2,3,4,5 mapped to correct positions
+            for i, pos in enumerate(chero_positions):
+                if self.frameData[pos] != frame[2][pos]:
+                    indexedList += [i, frame[2][pos]]
+        else:
+            for i in range(16):
+                if self.frameData[4 + i] != frame[2][4 + i]:
+                    indexedList += [i, frame[2][4 + i]]
         self.frameData = copy.deepcopy(frame[2])
         self.updateSliders(self.frameData)
         self.changeButtonState(f)
 
         if len(indexedList) > 10:
-            send(ports, ['L', self.frameData[4:20], 0.05])
+            if self.model == 'Chero':
+                # Send only the actual Chero joint positions
+                cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])
+                send(ports, ['L', cheroJoints, 0.05])
+            else:
+                send(ports, ['L', self.frameData[4:20], 0.05])  # Send 16 joints for other models
         elif len(indexedList):
             send(ports, ['I', indexedList, 0.05])
 
@@ -1091,7 +1260,10 @@ class SkillComposer:
 
         if skillData[0] < 0:
             header = 7
-            frameSize = 20
+            if self.model == 'Chero':
+                frameSize = 10  # 6 joints + 4 description values for Chero
+            else:
+                frameSize = 20  # 16 joints + 4 description values for other models
             loopFrom, loopTo, repeat = skillData[4:7]
             self.vRepeat.set(repeat)
             copyFrom = 4
@@ -1099,12 +1271,18 @@ class SkillComposer:
         else:
             header = 4
             if skillData[0] == 1:  # posture
-                frameSize = 16
+                if self.model == 'Chero':
+                    frameSize = 10  # 6 joints + 4 description values
+                else:
+                    frameSize = 16
                 copyFrom = 4
             else:  # gait
                 if self.model == 'DoF16':
                     frameSize = 12
                     copyFrom = 8
+                elif self.model == 'Chero':
+                    frameSize = 10  # 6 joints + 4 description values
+                    copyFrom = 4
                 else:
                     frameSize = 8
                     copyFrom = 12
@@ -1121,10 +1299,26 @@ class SkillComposer:
             if f != 0:
                 self.addFrame(f)
             frame = self.frameList[f]
-            frame[2][copyFrom:copyFrom + frameSize] = copy.deepcopy(
-                skillData[header + frameSize * f:header + frameSize * (f + 1)])
+            if self.model == 'Chero':
+                # For Chero, load the 10 values (6 joints + 4 description)
+                dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
+                # Map Chero joints to correct DoF16 positions:
+                # Chero joints 0,1 → DoF16 positions 0,1 (frame[2][4:6])
+                frame[2][4:6] = copy.deepcopy(dof6FData[:2])
+                # Chero joints 2,3,4,5 → DoF16 positions 8,9,10,11 (frame[2][12:16])
+                frame[2][12:16] = copy.deepcopy(dof6FData[2:6])
+                # Assign description values to positions 20-23
+                frame[2][20:24] = copy.deepcopy(dof6FData[6:10])
+            else:
+                frame[2][copyFrom:copyFrom + frameSize] = copy.deepcopy(
+                    skillData[header + frameSize * f:header + frameSize * (f + 1)])
             if skillData[3] > 1:
-                frame[2][4:20] = list(map(lambda x: x * 2, frame[2][4:20]))
+                if self.model == 'Chero':
+                    # For Chero, multiply only the actual joint positions
+                    frame[2][4:6] = list(map(lambda x: x * 2, frame[2][4:6]))  # joints 0,1
+                    frame[2][12:16] = list(map(lambda x: x * 2, frame[2][12:16]))  # joints 2,3,4,5
+                else:
+                    frame[2][4:20] = list(map(lambda x: x * 2, frame[2][4:20]))
                 print(frame[2][4:24])
 
             if skillData[0] < 0:
@@ -1160,7 +1354,10 @@ class SkillComposer:
         self.restartSkillEditor()
         if skillData[0] < 0:
             header = 7
-            frameSize = 20
+            if self.model == 'Chero':
+                frameSize = 10  # 6 joints + 4 description values for Chero
+            else:
+                frameSize = 20  # 16 joints + 4 description values for other models
             loopFrom, loopTo, repeat = skillData[4:7]
             self.vRepeat.set(repeat)
             copyFrom = 4
@@ -1174,6 +1371,9 @@ class SkillComposer:
                 if self.model == 'DoF16':
                     frameSize = 12
                     copyFrom = 8
+                elif self.model == 'Chero':
+                    frameSize = 10  # 6 joints + 4 description values
+                    copyFrom = 4
                 else:
                     frameSize = 8
                     copyFrom = 12
@@ -1189,10 +1389,26 @@ class SkillComposer:
             if f != 0:
                 self.addFrame(f)
             frame = self.frameList[f]
-            frame[2][copyFrom:copyFrom + frameSize] = copy.deepcopy(
-                skillData[header + frameSize * f:header + frameSize * (f + 1)])
+            if self.model == 'Chero':
+                # For Chero, load the 10 values (6 joints + 4 description)
+                dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
+                # Map Chero joints to correct DoF16 positions:
+                # Chero joints 0,1 → DoF16 positions 0,1 (frame[2][4:6])
+                frame[2][4:6] = copy.deepcopy(dof6FData[:2])
+                # Chero joints 2,3,4,5 → DoF16 positions 8,9,10,11 (frame[2][12:16])
+                frame[2][12:16] = copy.deepcopy(dof6FData[2:6])
+                # Assign description values to positions 20-23
+                frame[2][20:24] = copy.deepcopy(dof6FData[6:10])
+            else:
+                frame[2][copyFrom:copyFrom + frameSize] = copy.deepcopy(
+                    skillData[header + frameSize * f:header + frameSize * (f + 1)])
             if skillData[3] > 1:
-                frame[2][4:20] = list(map(lambda x: x * 2, frame[2][4:20]))
+                if self.model == 'Chero':
+                    # For Chero, multiply only the actual joint positions
+                    frame[2][4:6] = list(map(lambda x: x * 2, frame[2][4:6]))  # joints 0,1
+                    frame[2][12:16] = list(map(lambda x: x * 2, frame[2][12:16]))  # joints 2,3,4,5
+                else:
+                    frame[2][4:20] = list(map(lambda x: x * 2, frame[2][4:20]))
                 print(frame[2][4:24])
 
             if skillData[0] < 0:
@@ -1454,24 +1670,52 @@ class SkillComposer:
         self.playStop = True
 
     def mirrorAngles(self, singleFrame):
-        singleFrame[1] = -singleFrame[1]
-        singleFrame[4] = -singleFrame[4]
-        singleFrame[4 + 2] = -singleFrame[4 + 2]
-        for i in range(4, 16, 2):
-            singleFrame[4 + i], singleFrame[4 + i + 1] = singleFrame[4 + i + 1], singleFrame[4 + i]
-        if abs(singleFrame[22]) == 2:
+        if self.model == 'Chero':
+            # For Chero (6 joints): specific mirror logic
+            if len(singleFrame) > 4 + 5:  # Ensure we have enough elements
+                # Mirror head pan (joint 0)
+                singleFrame[4 + 0] = -singleFrame[4 + 0]
+                # Head tilt (joint 1) stays the same
+                # Swap left/right shoulder joints (2,3)
+                singleFrame[4 + 2], singleFrame[4 + 3] = singleFrame[4 + 3], singleFrame[4 + 2]
+                # Swap left/right arm joints (4,5)  
+                singleFrame[4 + 4], singleFrame[4 + 5] = singleFrame[4 + 5], singleFrame[4 + 4]
+        else:
+            # Original logic for 16-joint models
+            singleFrame[1] = -singleFrame[1]
+            singleFrame[4] = -singleFrame[4]
+            singleFrame[4 + 2] = -singleFrame[4 + 2]
+            for i in range(4, 16, 2):
+                singleFrame[4 + i], singleFrame[4 + i + 1] = singleFrame[4 + i + 1], singleFrame[4 + i]
+                
+        if len(singleFrame) > 22 and abs(singleFrame[22]) == 2:
             singleFrame[22] = -singleFrame[22]
             singleFrame[23] = -singleFrame[23]
 
     def generateMirrorFrame(self):
-        self.values[16 + 2].set(-1 * self.values[16 + 2].get())
-        self.values[16 + 5].set(-1 * self.values[16 + 5].get())
+        if self.model == 'Chero':
+            # For Chero, mirror the 6-axis values at indices 6 and 9 (corresponding to Y and roll)
+            if len(self.values) > 6 + 2:  # 6 joints + at least 3 axis values
+                self.values[6 + 2].set(-1 * self.values[6 + 2].get())  # Y axis
+            if len(self.values) > 6 + 5:  # 6 joints + at least 6 axis values
+                self.values[6 + 5].set(-1 * self.values[6 + 5].get())  # Roll axis
+        else:
+            # Original logic for other models
+            self.values[16 + 2].set(-1 * self.values[16 + 2].get())
+            self.values[16 + 5].set(-1 * self.values[16 + 5].get())
+            
         self.mirrorAngles(self.originalAngle)
         self.mirrorAngles(self.frameData)
         self.updateSliders(self.frameData)
         self.indicateEdit()
         self.frameController.update()
-        send(ports, ['L', self.frameData[4:20], 0.05])
+        
+        if self.model == 'Chero':
+            # Send only the actual Chero joint positions
+            cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])
+            send(ports, ['L', cheroJoints, 0.05])
+        else:
+            send(ports, ['L', self.frameData[4:20], 0.05])
         
     def popCreator(self):
         self.creatorWin = Toplevel(self.window)
@@ -1616,24 +1860,39 @@ class SkillComposer:
         if self.model == 'DoF16':
             frameSize = 12
             copyFrom = 8
+        elif self.model == 'Chero':
+            frameSize = 10  # 6 joints + 4 description values
+            copyFrom = 4
         else:
             frameSize = 8
             copyFrom = 12
         if self.gaitOrBehavior.get() == txt('Behavior'):
             period = -period
             copyFrom = 4
-            frameSize = 20
+            if self.model == 'Chero':
+                frameSize = 10  # 6 joints + 4 description values
+            else:
+                frameSize = 20
         if self.totalFrame == 1:
             period = 1
             copyFrom = 4
-            frameSize = 16
+            if self.model == 'Chero':
+                frameSize = 10  # 6 joints + 4 description values
+            else:
+                frameSize = 16
         angleRatio = 1
         inv_triggerAxis = {txt(v): k for k, v in triggerAxis.items()}
         for f in range(0, self.totalFrame):
             frame = self.frameList[f]
             self.frameData = copy.deepcopy(frame[2])
-            if max(self.frameData[4:20]) > 125 or min(self.frameData[4:20]) < -125:
-                angleRatio = 2
+            if self.model == 'Chero':
+                # For Chero, check the actual joint positions for angle range
+                cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])  # joints 0,1 + 2,3,4,5
+                if max(cheroJoints) > 125 or min(cheroJoints) < -125:
+                    angleRatio = 2
+            else:
+                if max(self.frameData[4:20]) > 125 or min(self.frameData[4:20]) < -125:
+                    angleRatio = 2
             if self.frameData[3] == 1:
                 loopStructure.append(f)
             if self.getWidget(f, cStep).get() == txt('max') or int(self.getWidget(f, cStep).get())>127:
@@ -1648,7 +1907,13 @@ class SkillComposer:
             self.updateSliders(self.frameData)
             self.changeButtonState(f)
             self.frameController.update()
-            skillData.append(self.frameData[copyFrom: copyFrom + frameSize])
+            if self.model == 'Chero':
+                # For Chero, extract the 6 joints from correct positions + 4 description values
+                cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])  # joints 0,1 + 2,3,4,5
+                dof6FData = cheroJoints + list(self.frameData[20:24])  # 6 joints + 4 description values
+                skillData.append(dof6FData)
+            else:
+                skillData.append(self.frameData[copyFrom: copyFrom + frameSize])
         print(skillData)
         if period == 1:
             print(self.frameData[4:20])
@@ -1656,7 +1921,9 @@ class SkillComposer:
             return
         if angleRatio == 2:
             for r in skillData:
-                if frameSize == 8 or frameSize == 12:
+                if frameSize == 10:  # Chero - only divide the first 6 joint angles, not the last 4 description values
+                    r[:6] = list(map(lambda x: x // angleRatio, r[:6]))
+                elif frameSize == 8 or frameSize == 12:
                     r = list(map(lambda x: x // angleRatio, r))
                 elif frameSize == 20:
                     r[:16] = list(map(lambda x: x // angleRatio, r[:16]))
@@ -1792,6 +2059,15 @@ class SkillComposer:
         self.controllerLabels[1].config(fg='blue')
 
     def changeRadioColor(self, joint, value):  # -1, 0, 1
+        # For Chero, only process the 6 joints
+        if self.model == 'Chero':
+            if joint >= 6:
+                return  # Skip invalid joints for Chero
+        else:
+            # For other models, check if joint is valid
+            if joint >= 16:
+                return
+                
         if value:
             self.binderButton[joint * 2 + (1 - value) // 2].configure(background='red')
             self.binderButton[joint * 2 + (value + 1) // 2].configure(background='light blue')
@@ -1800,12 +2076,30 @@ class SkillComposer:
             self.binderButton[joint * 2 + 1].configure(background='light blue')
         self.binderButton[joint * 2].update()
         self.binderButton[joint * 2 + 1].update()
-        if 1 in self.previousBinderValue or -1 in self.previousBinderValue:
+        
+        # Check if any binder is active
+        if self.model == 'Chero':
+            # For Chero, only check the 6 joints
+            hasActiveBinder = any(self.previousBinderValue[i] != 0 for i in range(6))
+        else:
+            # For other models, check all 16 joints
+            hasActiveBinder = 1 in self.previousBinderValue or -1 in self.previousBinderValue
+            
+        if hasActiveBinder:
             self.controllerLabels[1].config(fg='red')
         else:
             self.controllerLabels[1].config(fg='blue')
 
     def updateRadio(self, joint):
+        # For Chero, only process the 6 joints
+        if self.model == 'Chero':
+            if joint >= 6:
+                return  # Skip invalid joints for Chero
+        else:
+            # For other models, check if joint is valid
+            if joint >= 16:
+                return
+                
         if self.previousBinderValue[joint] == self.binderValue[joint].get():
             self.binderValue[joint].set(0)
         self.previousBinderValue[joint] = self.binderValue[joint].get()
@@ -1814,24 +2108,64 @@ class SkillComposer:
     def setAngle(self, idx, value):
         if self.ready == 1:
             value = int(value)
-            if self.binderValue[idx].get() == 0:
-                self.frameData[4 + idx] = value
-                if -126 < value < 126:
-                    send(ports, ['I', [idx, value], 0.05])
+            
+            # For Chero, process the 6 joints with correct mapping
+            if self.model == 'Chero':
+                if idx >= 6:
+                    return  # Skip invalid joints for Chero
+                
+                # Map Chero joint index to correct frame position
+                if idx < 2:
+                    frame_idx = 4 + idx  # joints 0,1 → positions 4,5
                 else:
-                    send(ports, ['i', [idx, value], 0.05])
+                    frame_idx = 12 + (idx - 2)  # joints 2,3,4,5 → positions 12,13,14,15
+                
+                if self.binderValue[idx].get() == 0:
+                    self.frameData[frame_idx] = value
+                    if -126 < value < 126:
+                        send(ports, ['I', [idx, value], 0.05])
+                    else:
+                        send(ports, ['i', [idx, value], 0.05])
+                else:
+                    diff = value - self.frameData[frame_idx]
+                    indexedList = list()
+                    for i in range(6):  # Only check the 6 Chero joints
+                        if self.binderValue[i].get():
+                            # Map each Chero joint to correct frame position
+                            if i < 2:
+                                joint_frame_idx = 4 + i
+                            else:
+                                joint_frame_idx = 12 + (i - 2)
+                            self.frameData[joint_frame_idx] += diff * self.binderValue[i].get() * self.binderValue[idx].get()
+                            indexedList += [i, self.frameData[joint_frame_idx]]
+                            
+                    if len(indexedList) > 10:
+                        # Send only the actual Chero joint positions
+                        cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])
+                        send(ports, ['L', cheroJoints, 0.05])
+                    elif len(indexedList):
+                        send(ports, ['I', indexedList, 0.05])
             else:
-                diff = value - self.frameData[4 + idx]
-                indexedList = list()
-                for i in range(16):
-                    if self.binderValue[i].get():
-                        self.frameData[4 + i] += diff * self.binderValue[i].get() * self.binderValue[idx].get()
-                        indexedList += [i, self.frameData[4 + i]]
-                        
-                if len(indexedList) > 10:
-                    send(ports, ['L', self.frameData[4:20], 0.05])
-                elif len(indexedList):
-                    send(ports, ['I', indexedList, 0.05])
+                # Original logic for other models
+                if self.binderValue[idx].get() == 0:
+                    self.frameData[4 + idx] = value
+                    if -126 < value < 126:
+                        send(ports, ['I', [idx, value], 0.05])
+                    else:
+                        send(ports, ['i', [idx, value], 0.05])
+                else:
+                    diff = value - self.frameData[4 + idx]
+                    indexedList = list()
+                    for i in range(16):
+                        if self.binderValue[i].get():
+                            self.frameData[4 + i] += diff * self.binderValue[i].get() * self.binderValue[idx].get()
+                            indexedList += [i, self.frameData[4 + i]]
+                            
+                    if len(indexedList) > 10:
+                        send(ports, ['L', self.frameData[4:20], 0.05])
+                    else:
+                        if len(indexedList):
+                            send(ports, ['I', indexedList, 0.05])
 
             self.indicateEdit()
             self.updateSliders(self.frameData)
@@ -1948,12 +2282,43 @@ class SkillComposer:
         if self.ready == 1:
             self.getWidget(self.activeFrame, cNote).delete(0, END)
             self.getWidget(self.activeFrame, cNote).insert(0, pose + str(self.activeFrame))
-            self.frameData[4:20] = copy.deepcopy(self.postureTable[pose])
+            
+            if self.model == 'Chero':
+                # For Chero, posture data format: [1, 0, 0, 1, joint0, joint1, joint2, joint3, joint4, joint5]
+                dof6Posture = self.postureTable[pose]
+                # Extract the 6 joint values (indices 4-9 in posture data)
+                joint_values = dof6Posture[4:10]  # Get the 6 joint values
+                
+                # Map to correct frameData positions
+                self.frameData[4] = joint_values[0]   # joint 0 → position 4
+                self.frameData[5] = joint_values[1]   # joint 1 → position 5
+                self.frameData[12] = joint_values[2]  # joint 2 → position 12
+                self.frameData[13] = joint_values[3]  # joint 3 → position 13
+                self.frameData[14] = joint_values[4]  # joint 4 → position 14
+                self.frameData[15] = joint_values[5]  # joint 5 → position 15
+                
+                # Create a safe angles array for updateSliders
+                safe_angles = [0] * 24  # Ensure enough space
+                safe_angles[4:6] = joint_values[0:2]    # joints 0,1
+                safe_angles[12:16] = joint_values[2:6]  # joints 2,3,4,5
+                self.updateSliders(safe_angles)
+            else:
+                self.frameData[4:20] = copy.deepcopy(self.postureTable[pose])
+                self.updateSliders(self.postureTable[pose])
+            
             self.originalAngle[0] = 0
-            self.updateSliders(self.postureTable[pose])
             self.indicateEdit()
-            for i in range(6):
-                self.values[16 + i].set(0)
+            # Reset 6-axis values (indices 16-21 in values list)
+            if self.model == 'Chero':
+                # For Chero, values list has 6 elements (0-5), so 6-axis values start at index 6
+                for i in range(6):
+                    if len(self.values) > 6 + i:  # Check if the index exists
+                        self.values[6 + i].set(0)
+            else:
+                # For other models, 6-axis values start at index 16
+                for i in range(6):
+                    self.values[16 + i].set(0)
+            
             send(ports,['i',0])
             send(ports, ['k' + pose, 0])
 #            if pose == 'rest':
@@ -1966,9 +2331,41 @@ class SkillComposer:
         self.frameData[21] = int(self.getWidget(self.activeFrame, cDelay).get())
 
     def updateSliders(self, angles):
-        for i in range(16):
-            self.values[i].set(angles[4 + i])
-            self.frameData[4 + i] = angles[4 + i]
+        if self.model == 'Chero':
+            # For Chero, handle the 6 joints safely
+            for i in range(6):
+                if i < 2:
+                    # Chero joints 0,1 → check if angles has enough data
+                    if len(angles) > 4 + i:
+                        angle_value = angles[4 + i]
+                        self.values[i].set(angle_value)
+                        self.frameData[4 + i] = angle_value
+                    else:
+                        # If no data available, set to 0
+                        self.values[i].set(0)
+                        self.frameData[4 + i] = 0
+                else:
+                    # Chero joints 2,3,4,5 → check if angles has enough data
+                    target_idx = 12 + (i - 2)
+                    if len(angles) > target_idx:
+                        angle_value = angles[target_idx]
+                        self.values[i].set(angle_value)
+                        self.frameData[target_idx] = angle_value
+                    else:
+                        # If no data available, set to 0
+                        self.values[i].set(0)
+                        if len(self.frameData) > target_idx:
+                            self.frameData[target_idx] = 0
+        else:
+            for i in range(16):
+                if len(angles) > 4 + i:  # Check if the index exists
+                    angle_value = angles[4 + i]
+                    self.values[i].set(angle_value)
+                    self.frameData[4 + i] = angle_value
+                else:
+                    # If angle doesn't exist, set to 0
+                    self.values[i].set(0)
+                    self.frameData[4 + i] = 0
     """
     def keepCheckingPort(self, goodPorts):
         allPorts = Communication.Print_Used_Com()

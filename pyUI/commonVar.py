@@ -45,7 +45,7 @@ try:
     from idlelib.tooltip import Hovertip
 except Exception as e:
     logger.info("Cannot import hovertip!")
-    raise e
+    supportHoverTip = False
     
 modelOptions = [
     'Nybble',
@@ -53,7 +53,8 @@ modelOptions = [
     'Bittle',
     'Bittle X',
     'Bittle X+Arm',
-    'DoF16'
+    'DoF16',
+    'Chero'
 ]
 
 NaJoints = {
@@ -61,7 +62,8 @@ NaJoints = {
     'Bittle': [1, 2, 3, 4, 5, 6, 7],
 #    'BittleX': [1, 2, 3, 4, 5, 6, 7],
     'BittleX+Arm': [3, 4, 5, 6, 7],
-    'DoF16' : []
+    'DoF16' : [],
+    'Chero' : []
 }
 
 BittleRScaleNames = [
@@ -79,7 +81,8 @@ RegularScaleNames = [
 scaleNames = {
     'Nybble': RegularScaleNames,
     'Bittle': RegularScaleNames,
-    'BittleX+Arm': BittleRScaleNames
+    'BittleX+Arm': BittleRScaleNames,
+    'Chero': RegularScaleNames
 }
 
 sideNames = ['Left Front', 'Right Front', 'Right Back', 'Left Back']

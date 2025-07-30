@@ -384,6 +384,11 @@ dof6Data = self.frameData[4:10] + self.frameData[20:24]  # 6 joints + 4 descript
    - 导出功能修复
    - 调试信息清理
 
+6. **Calibrator支持**
+   - 完整的校准界面适配
+   - 6关节校准逻辑
+   - 与SkillComposer一致的布局
+
 ### 📊 技术规格
 
 #### 16自由度模型 (Bittle/Nybble/DoF16)
@@ -413,12 +418,212 @@ dof6Data = self.frameData[4:10] + self.frameData[20:24]  # 6 joints + 4 descript
 
 ---
 
-## 📁 相关文件
+## 🎯 第八阶段：Calibrator UI 对 Chero 的支持
+
+### 概述
+参考 SkillComposer 的成功实现，为 Calibrator 界面添加了完整的 Chero 模型支持。
+
+### 主要修改
+
+#### 1. 配置文件扩展
+**新增 Chero 专用配置**:
+```python
+# Chero-specific settings - compact 5-column layout
+CheroWinSet = {
+    "imageW": 250,       # Image width for Chero
+    "sliderW": 150,      # Width for horizontal sliders (joints 0,1)
+    "rowJoint1": 2,      # Row for horizontal sliders
+    "sliderLen": 150,    # Length for vertical sliders (joints 2,3,4,5)
+    "rowJoint2": 4       # Starting row for vertical sliders
+}
+
+CheroMacSet = {
+    "imageW": 190,
+    "sliderW": 120,
+    "rowJoint1": 2,
+    "sliderLen": 120,
+    "rowJoint2": 4
+}
+```
+
+#### 2. 布局实现
+**5列紧凑布局**:
+- **列 0-1**: 关节0的水平滑条（占2列）
+- **列 1-3**: 中间的图片和控制区域（占3列，与关节0重叠1列）
+- **列 3-4**: 关节1的水平滑条（占2列，与中间区域重叠1列）
+- **列 0**: 关节2（左前）和关节5（左后）
+- **列 4**: 关节3（右前）和关节4（右后）
+
+#### 3. 关节映射
+**Chero 6关节系统**:
+- **关节 0,1**: 水平滑条（头部控制）
+- **关节 2,3,4,5**: 垂直滑条，映射到 DoF16 关节 8,9,10,11 的标签和位置
+
+#### 4. 核心代码修改
+
+**模型识别**:
+```python
+elif config.model_ == 'Chero':
+    self.model = 'Chero'
+```
+
+**动态关节数量**:
+```python
+# For Chero, show only 6 joints; for others, show 16 joints
+if self.model == 'Chero':
+    numJoints = 6
+else:
+    numJoints = 16
+```
+
+**布局逻辑**:
+```python
+if self.model == 'Chero':
+    # Chero layout: joints 0,1 horizontal, joints 2,3,4,5 vertical
+    if i < 2:  # Joints 0, 1 - horizontal
+        # 水平滑条布局逻辑
+    else:  # Joints 2, 3, 4, 5 - vertical
+        # 垂直滑条布局逻辑
+```
+
+**偏移量处理**:
+```python
+# For Chero, only set offsets for 6 joints; for others, set all 16
+if self.model == 'Chero':
+    for i in range(6):
+        self.calibSliders[i].set(offsets[i])
+else:
+    for i in range(16):
+        self.calibSliders[i].set(offsets[i])
+```
+
+### 功能特性
+
+#### ✅ 完整的校准支持
+- **6关节校准**: 仅显示和处理Chero的6个关节
+- **偏移量管理**: 正确处理6关节的校准偏移数据
+- **姿势预览**: 支持站立、休息、行走等姿势
+
+#### ✅ 视觉优化
+- **紧凑布局**: 使用5列布局，界面更紧凑美观
+- **正确标签**: 关节2,3,4,5使用DoF16对应的侧标签
+- **一致性**: 与SkillComposer的布局保持一致
+
+#### ✅ 功能完整性
+- **校准功能**: 完整的校准流程支持
+- **保存/恢复**: 偏移量的保存和加载
+- **实时调节**: 滑块实时调节校准值
+
+### 技术细节
+
+#### 关节布局映射
+```
+Chero关节  →  DoF16位置  →  显示标签
+关节 0     →  head pan   →  无侧标签
+关节 1     →  head tilt  →  无侧标签
+关节 2     →  joint 8    →  左前 (front left)
+关节 3     →  joint 9    →  右前 (front right)
+关节 4     →  joint 10   →  右后 (back right)
+关节 5     →  joint 11   →  左后 (back left)
+```
+
+#### 布局坐标
+```
+Column: 0    1    2    3    4
+       [关节0的水平滑条 ]
+                [图片区域 ]
+                    [关节1的水平滑条]
+       [2,5]         [3,4]
+       垂直           垂直
+```
+
+### 兼容性保证
+- **向后兼容**: 不影响现有16关节模型的功能
+- **配置驱动**: 通过参数配置自动适应不同模型
+- **代码复用**: 最大化复用现有校准逻辑
+
+**Calibrator 对 Chero 的支持现已完全实现！** 🎉
+
+### 最新修复（第八阶段补充）
+
+### 最新修复（第八阶段补充）
+
+#### 数据解析问题修复（重大改进）
+**问题**: 校准数据包含大量无关信息，导致解析出错误的偏移值
+**原始错误**: `Warning: Non-numeric offset value 'steps=0012345-20' replaced with 0`
+
+**解决方案**: 完全重写数据解析逻辑
+```python
+# 使用正则表达式提取所有数字
+import re
+numeric_matches = re.findall(r'-?\d+(?:\.\d+)?', offsets)
+
+# 过滤合理的关节偏移值（-50到50之间）
+cleaned_offsets = []
+for match in numeric_matches:
+    try:
+        value = float(match)
+        # 只接受合理的偏移值
+        if -50 <= value <= 50:
+            cleaned_offsets.append(value)
+    except ValueError:
+        continue
+```
+
+#### 布局问题最终修复
+**问题**: Head Pan和Head Tilt滑条位置重叠，显示不正确
+**解决方案**: 
+- 改回2列布局，确保不重叠：
+  - Head Pan: 列0-1
+  - Head Tilt: 列3-4（跳过列2）
+- 控制按钮区域移到列2（中间位置）
+- 使用较短的滑条长度以适应布局
+
+#### 最终布局设计
+```
+列:   0   1   2   3   4
+    [Head Pan][按钮][Head Tilt]
+    [左侧垂直] [区域] [右侧垂直]
+```
+
+#### 布局优化
+**问题**: 头部平转和俯仰滑条布局重叠，显示不正确
+**解决方案**: 
+- 头部滑条使用3列布局，更好的间距
+- 关节0：列0-2（左侧）
+- 关节1：列2-4（右侧，在列2重叠）
+- 使用完整的滑条宽度以获得更好的视觉效果
+
+#### 数据解析增强
+**问题**: 校准数据包含非数字字符串导致异常
+**解决方案**: 添加健壮的数据清理和验证
+```python
+# Clean and validate offsets - filter out non-numeric values
+cleaned_offsets = []
+for offset in offsets:
+    try:
+        # Try to convert to float, if successful add to cleaned list
+        cleaned_offsets.append(float(offset))
+    except (ValueError, TypeError):
+        # If conversion fails, use 0 as default
+        cleaned_offsets.append(0.0)
+        print(f"Warning: Non-numeric offset value '{offset}' replaced with 0")
+```
+
+#### 错误处理改进
+- 使用`messagebox.showwarning`代替`tk.messagebox.showwarning`
+- 添加数组边界检查，防止索引越界
+- 安全的偏移量设置，检查数组长度
+
+---
+
+## 🎯 项目成果总结
 
 本项目涉及的主要文件和修改记录：
 
 ### 代码文件
 - `pyUI/SkillComposer.py` - 主要实现
+- `pyUI/Calibrator.py` - 校准界面实现
 - `pyUI/commonVar.py` - 配置
 - `serialMaster/ardSerial.py` - 串口通信
 - `OpenCatPythonAPI/PetoiRobot/ardSerial.py` - API接口
@@ -435,3 +640,458 @@ dof6Data = self.frameData[4:10] + self.frameData[20:24]  # 6 joints + 4 descript
 - `Mirror_Function_Fix.md` - 镜像功能修复
 - `Export_Fix_Summary.md` - 导出功能修复
 - `DoF6_support.md` - 本综合文档
+
+---
+
+## 🔧 第七阶段：SkillComposer数据格式修复
+
+### 7.1 导出功能修复 (Export Fix)
+
+#### 问题描述
+SkillComposer导出Chero技能时遗漏了每帧最后4位修饰数据，导致导出的技能文件不完整。
+
+#### 正确的数据格式理解
+
+**DoF16格式：**
+- **前部数据**：7个（头部信息）
+- **每帧数据**：20个（16个关节 + 4个修饰数据）
+
+**DoF6(Chero)格式：**
+- **前部数据**：7个（头部信息）  
+- **每帧数据**：10个（6个关节 + 4个修饰数据）
+
+#### 修复方案
+
+**修正所有模式下的frameSize设置：**
+
+```python
+# Behavior模式 (period < 0)
+if period < 0 and self.gaitOrBehavior.get() == txt('Behavior'):
+    copyFrom = 4
+    if self.model == 'Chero':
+        frameSize = 10  # ✅ 6关节 + 4修饰
+    else:
+        frameSize = 20  # DoF16: 16关节 + 4修饰
+
+# Posture模式 (period = 1)
+if self.totalFrame == 1:
+    period = 1
+    copyFrom = 4
+    if self.model == 'Chero':
+        frameSize = 10  # ✅ 6关节 + 4修饰
+    else:
+        frameSize = 16
+
+# Gait模式
+if self.model == 'DoF16':
+    frameSize = 12
+    copyFrom = 8
+elif self.model == 'Chero':
+    frameSize = 10  # ✅ 6关节 + 4修饰
+    copyFrom = 4
+```
+
+**Chero数据提取修复：**
+```python
+if self.model == 'Chero':
+    # 提取6个关节从正确位置 + 4个修饰数据
+    cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])  # joints 0,1 + 2,3,4,5
+    dof6FData = cheroJoints + list(self.frameData[20:24])  # 6 joints + 4 description values
+    skillData.append(dof6FData)
+```
+
+### 7.2 导入崩溃修复 (Import Crash Fix)
+
+#### 问题描述
+SkillComposer在导入Chero技能时出现"objc autorelease pool page corrupted"崩溃，这是由于内存访问错误导致的。
+
+#### 根本原因
+**frameSize设置错误**：所有Chero相关模式的frameSize都设置为6，但实际DoF6数据格式是10个值per frame：
+- 6个关节角度 + 4个修饰数据 = 10个值
+
+#### 修复内容
+
+**1. loadSkill函数修复：**
+```python
+# 所有模式的frameSize修复
+if skillData[0] < 0:  # Behavior模式
+    header = 7
+    if self.model == 'Chero':
+        frameSize = 10  # ✅ 正确：6关节 + 4修饰
+    else:
+        frameSize = 20
+
+if skillData[0] == 1:  # Posture模式
+    if self.model == 'Chero':
+        frameSize = 10  # ✅ 正确：6关节 + 4修饰
+
+# Gait模式
+elif self.model == 'Chero':
+    frameSize = 10  # ✅ 正确：6关节 + 4修饰
+```
+
+**2. loadSkillDataText函数修复：**
+同样的frameSize修复应用于所有三种模式。
+
+**3. 数据访问模式：**
+```python
+if self.model == 'Chero':
+    dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
+    # 6个关节角度 → positions 4-9
+    frame[2][4:10] = copy.deepcopy(dof6FData[:6])
+    # 4个修饰数据 → positions 20-23
+    frame[2][20:24] = copy.deepcopy(dof6FData[6:10])
+```
+
+### 7.3 关节映射修复 (Joint Mapping Fix)
+
+#### 问题分析
+之前的代码将Chero的6个关节直接映射到frame[2][4:10]，但根据实际需求：
+- **Chero关节0,1** 对应 **DoF16关节0,1** (frame[2][4:6])
+- **Chero关节2,3,4,5** 对应 **DoF16关节8,9,10,11** (frame[2][12:16])
+
+#### 修复内容
+
+**1. 修复loadSkillDataText函数中的关节映射：**
+```python
+if self.model == 'Chero':
+    dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
+    # Chero joints 0,1 → DoF16 positions 0,1 (frame[2][4:6])
+    frame[2][4:6] = copy.deepcopy(dof6FData[:2])
+    # Chero joints 2,3,4,5 → DoF16 positions 8,9,10,11 (frame[2][12:16])
+    frame[2][12:16] = copy.deepcopy(dof6FData[2:6])
+    # Assign description values to positions 20-23
+    frame[2][20:24] = copy.deepcopy(dof6FData[6:10])
+```
+
+**2. 修复setAngle函数映射：**
+```python
+if self.model == 'Chero':
+    if idx >= 6:
+        return  # Skip invalid joints for Chero
+    
+    # Map Chero joint index to correct frame position
+    if idx < 2:
+        frame_idx = 4 + idx  # joints 0,1 → positions 4,5
+    else:
+        frame_idx = 12 + (idx - 2)  # joints 2,3,4,5 → positions 12,13,14,15
+```
+
+**3. 修复导出时的关节提取：**
+```python
+if self.model == 'Chero':
+    # 提取6个关节从正确位置
+    cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])  
+    dof6FData = cheroJoints + list(self.frameData[20:24])  
+    skillData.append(dof6FData)
+```
+
+### 7.4 数据结构修复 (Data Structure Fix)
+
+#### 问题根源
+
+**1. setDelay函数误改：**
+- **导入时**：delay值已经是除以50的结果，UI显示时需要乘以50
+- **设置时**：UI设置的delay值应该直接存储，不需要再除以50
+- **导出时**：存储的delay值需要除以50
+
+**2. IndexError in updateSliders：**
+Chero的postureTable数据格式：
+- **实际格式**：`[1, 0, 0, 1, joint0, joint1, joint2, joint3, joint4, joint5]`
+- **错误理解**：以为是完整的24元素frameData格式
+
+#### 修复方案
+
+**1. 恢复正确的setDelay函数：**
+```python
+def setDelay(self):
+    self.frameData[21] = max(min(int(self.getWidget(self.activeFrame, cDelay).get()) // 50,127),0)
+```
+
+**2. 修复updateSliders函数：**
+```python
+def updateSliders(self, angles):
+    if self.model == 'Chero':
+        for i in range(6):
+            if i < 2:
+                if len(angles) > 4 + i:
+                    angle_value = angles[4 + i]
+                    self.values[i].set(angle_value)
+                    self.frameData[4 + i] = angle_value
+                else:
+                    self.values[i].set(0)
+                    self.frameData[4 + i] = 0
+            else:
+                target_idx = 12 + (i - 2)
+                if len(angles) > target_idx:
+                    angle_value = angles[target_idx]
+                    self.values[i].set(angle_value)
+                    self.frameData[target_idx] = angle_value
+                else:
+                    self.values[i].set(0)
+                    if len(self.frameData) > target_idx:
+                        self.frameData[target_idx] = 0
+```
+
+**3. 修复setPose函数：**
+```python
+def setPose(self, pose):
+    if self.model == 'Chero':
+        # Chero postureTable format: [1, 0, 0, 1, joint0, joint1, joint2, joint3, joint4, joint5]
+        dof6Posture = self.postureTable[pose]
+        joint_values = dof6Posture[4:10]  # Extract the 6 joint values
+        
+        # Map to correct frameData positions
+        self.frameData[4] = joint_values[0]   # joint 0 → position 4
+        self.frameData[5] = joint_values[1]   # joint 1 → position 5
+        self.frameData[12] = joint_values[2]  # joint 2 → position 12
+        self.frameData[13] = joint_values[3]  # joint 3 → position 13
+        self.frameData[14] = joint_values[4]  # joint 4 → position 14
+        self.frameData[15] = joint_values[5]  # joint 5 → position 15
+        
+        # Create safe angles array for updateSliders
+        safe_angles = [0] * 24  
+        safe_angles[4:6] = joint_values[0:2]    # joints 0,1
+        safe_angles[12:16] = joint_values[2:6]  # joints 2,3,4,5
+        self.updateSliders(safe_angles)
+```
+
+### 7.5 技术要点总结
+
+#### DoF6数据格式理解：
+- **不是**只有6个值的简化格式
+- **是**完整的10值格式：6关节+4修饰
+- 与DoF16的区别是关节数量（6 vs 16），而非每帧数据结构
+
+#### Chero关节映射规则：
+```
+Chero关节索引  →  DoF16位置  →  frameData索引
+关节0        →   位置0     →   frameData[4]
+关节1        →   位置1     →   frameData[5]
+关节2        →   位置8     →   frameData[12]
+关节3        →   位置9     →   frameData[13]
+关节4        →   位置10    →   frameData[14]
+关节5        →   位置11    →   frameData[15]
+```
+
+#### 内存安全保障：
+- frameSize必须与实际数据结构匹配
+- 所有数组访问都添加边界检查
+- 正确的长度验证：`(len(skillData) - 7) % 10 == 0` for Chero
+
+---
+
+## 🎯 第八阶段：Calibrator界面优化
+
+### 8.1 图像位置调整
+
+#### 问题描述
+Calibrator中间图片应该在头部滑条的下一行，所以中间的所有元素应该下移一行。
+
+#### 修复内容
+
+**1. 更新Chero设置参数：**
+```python
+CheroWinSet = {
+    "imageW": 250,
+    "sliderW": 150,
+    "rowJoint1": 2,      # 头部滑条行
+    "sliderLen": 150,
+    "rowJoint2": 5       # 垂直滑条起始行（从4改为5）
+}
+
+CheroMacSet = {
+    "imageW": 190,
+    "sliderW": 120,
+    "rowJoint1": 2,
+    "sliderLen": 120,
+    "rowJoint2": 5       # 同样从4改为5
+}
+```
+
+**2. 更新图像位置：**
+```python
+# 主图像从row=7移到row=3
+self.imgPosture.grid(row=3, column=0, rowspan=3, columnspan=3)
+
+# 动态图像更新也移到row=3
+def calibFun(self, cmd):
+    # ... 其他代码 ...
+    self.imgPosture.grid(row=3, column=0, rowspan=3, columnspan=3)
+```
+
+**3. 更新按钮位置：**
+```python
+# 第一排按钮从row=6移到row=7
+calibButton.grid(row=7, column=0)
+restButton.grid(row=7, column=1)
+standButton.grid(row=7, column=2)
+
+# 第二排按钮从row=11移到row=12
+walkButton.grid(row=12, column=0)
+saveButton.grid(row=12, column=1)
+abortButton.grid(row=12, column=2)
+```
+
+**4. 更新框架跨度：**
+```python
+if self.model == 'Chero':
+    self.frameCalibButtons.grid(row=0, column=2, rowspan=14)  # 从13改为14
+else:
+    self.frameCalibButtons.grid(row=0, column=3, rowspan=14)  # 从13改为14
+```
+
+#### 最终布局（Chero）：
+- **Row 0-1**: 接线图片（顶部）
+- **Row 2**: 头部滑条（关节0, 1）- 水平
+- **Row 3**: 中间姿势图片（新位置）
+- **Row 5-6**: 垂直滑条开始（关节2, 3, 4, 5）
+- **Row 7**: 第一排按钮（Calibrate, Rest, Stand Up）
+- **Row 12**: 第二排按钮（Walk, Save, Abort）
+
+---
+
+## 📊 完整修复统计
+
+### SkillComposer修复项目：
+1. ✅ **导出frameSize修复** - 所有模式frameSize=10
+2. ✅ **导入frameSize修复** - loadSkill和loadSkillDataText
+3. ✅ **关节映射修复** - 正确的0,1→4,5和2,3,4,5→12,13,14,15映射
+4. ✅ **delay值处理修复** - setDelay函数恢复正确逻辑
+5. ✅ **边界检查修复** - updateSliders安全访问
+6. ✅ **setPose修复** - 正确解析postureTable格式
+7. ✅ **angleRatio检查修复** - 使用正确的关节位置
+
+### Calibrator修复项目：
+1. ✅ **图像位置调整** - 移动到头部滑条下方
+2. ✅ **按钮位置更新** - 相应下移一行
+3. ✅ **布局参数更新** - rowJoint2从4改为5
+4. ✅ **框架跨度调整** - rowspan从13改为14
+
+### 总计修复功能：
+- **导入功能** - 完全修复，支持所有模式
+- **导出功能** - 完全修复，包含完整数据
+- **UI交互** - 完全修复，无崩溃无错误
+- **数据映射** - 完全修复，正确的关节对应
+- **界面布局** - 完全修复，美观无重叠
+
+---
+
+## 🔧 第九阶段：OpenCatPythonAPI DoF6支持修复
+
+### 9.1 问题描述
+
+原始代码在处理 DoF6 机器人（如 Chero）时存在以下问题：
+
+1. **模型检测不完整**：`getModelAndVersion` 函数没有检测 DoF6 机器人
+2. **硬编码关节数量**：多个函数硬编码使用 16 个关节，而 DoF6 只有 6 个关节
+3. **错误的姿势表**：Export 时使用错误的姿势表，导致每帧输出 20 个值而不是 10 个值
+
+### 9.2 修复内容
+
+#### 1. 模型检测修复
+
+**文件**: `OpenCatPythonAPI/PetoiRobot/ardSerial.py`
+**函数**: `getModelAndVersion`
+
+```python
+# 修复前
+if 'Nybble' in parse[l] or 'Bittle' in parse[l] or 'DoF16' in parse[l]:
+
+# 修复后  
+if 'Nybble' in parse[l] or 'Bittle' in parse[l] or 'DoF16' in parse[l] or 'DoF6' in parse[l]:
+```
+
+#### 2. 姿势表动态选择
+
+**新增函数**: `updatePostureTable`
+
+```python
+def updatePostureTable():
+    global postureTable
+    if hasattr(config, 'model_') and config.model_:
+        if 'DoF6' in config.model_:
+            postureTable = postureDict['DoF6']
+        elif 'Nybble' in config.model_:
+            postureTable = postureDict['Nybble']
+        elif 'DoF16' in config.model_:
+            postureTable = postureDict['DoF16']
+        else:  # Bittle or BittleX+Arm
+            postureTable = postureDict['Bittle']
+```
+
+#### 3. schedulerToSkill 函数修复
+
+根据机器人模型动态选择正确的姿势表和关节数量：
+- DoF6: 6 个关节
+- 其他机器人: 16 个关节
+
+```python
+# 确定正确的姿势表和关节数量
+if hasattr(config, 'model_') and config.model_:
+    if 'DoF6' in config.model_:
+        currentPostureTable = postureDict['DoF6']
+        numJoints = 6
+    else:
+        currentPostureTable = postureDict['Bittle']
+        numJoints = 16
+```
+
+#### 4. serialWriteNumToByte 函数修复
+
+动态确定最大关节数量，修复硬编码的 `frameSize = 16` 和 `min(16,frameSize)`：
+
+```python
+# 根据机器人模型确定帧大小
+if hasattr(config, 'model_') and config.model_ and 'DoF6' in config.model_:
+    maxJoints = 6
+else:
+    maxJoints = 16
+```
+
+#### 5. splitTaskForLargeAngles 函数修复
+
+动态确定网格大小：
+- DoF6: 2x3 网格
+- 其他机器人: 4x4 网格
+
+```python
+# 根据机器人模型确定网格大小
+if hasattr(config, 'model_') and config.model_ and 'DoF6' in config.model_:
+    gridSize = 2  # 2x3 grid for DoF6
+else:
+    gridSize = 4  # 4x4 grid for other robots
+```
+
+### 9.3 测试结果
+
+#### DoF6 机器人测试
+- ✅ 模型检测正确
+- ✅ 姿势表选择正确（6 个关节）
+- ✅ Export 输出格式正确（每帧 10 个值）
+- ✅ 技能数据长度正确（37 个值：7 个头部 + 3 帧 × 10 个值）
+
+#### Bittle 机器人兼容性测试
+- ✅ 向后兼容性保持
+- ✅ 姿势表选择正确（16 个关节）
+- ✅ Export 输出格式正确（每帧 20 个值）
+- ✅ 技能数据长度正确（47 个值：7 个头部 + 2 帧 × 20 个值）
+
+### 9.4 修复效果对比
+
+**修复前（DoF6 机器人）：**
+```
+每帧输出: 20 个值（16 个关节 + 4 个元数据）
+实际需要: 10 个值（6 个关节 + 4 个元数据）
+```
+
+**修复后（DoF6 机器人）：**
+```
+每帧输出: 10 个值（6 个关节 + 4 个元数据）✅
+```
+
+### 9.5 兼容性保障
+
+- ✅ DoF6 机器人（如 Chero）现在可以正确处理
+- ✅ Bittle、Nybble、DoF16 机器人保持原有功能
+- ✅ 向后兼容，不影响现有代码

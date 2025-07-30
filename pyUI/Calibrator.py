@@ -36,11 +36,29 @@ RegularMacSet = {
     "rowJoint2": 2
 }
 
+# Chero-specific settings - compact 5-column layout
+CheroWinSet = {
+    "imageW": 250,       # Image width for Chero
+    "sliderW": 150,      # Width for horizontal sliders (joints 0,1)
+    "rowJoint1": 2,      # Row for horizontal sliders
+    "sliderLen": 150,    # Length for vertical sliders (joints 2,3,4,5)
+    "rowJoint2": 5       # Starting row for vertical sliders (moved down by 1 to make space for image)
+}
+
+CheroMacSet = {
+    "imageW": 190,
+    "sliderW": 120,
+    "rowJoint1": 2,
+    "sliderLen": 120,
+    "rowJoint2": 5
+}
+
 parameterWinSet = {
     "Nybble": RegularWinSet,
     "Bittle": RegularWinSet,
     "BittleX+Arm": BittleRWinSet,
     "DoF16": RegularWinSet,
+    "Chero": CheroWinSet,
 }
 
 parameterMacSet = {
@@ -48,6 +66,7 @@ parameterMacSet = {
     "Bittle": RegularMacSet,
     "BittleX+Arm": BittleRMacSet,
     "DoF16": RegularMacSet,
+    "Chero": CheroMacSet,
 }
 
 frontJointIdx = [4, 5, 8, 9, 12, 13]
@@ -78,6 +97,8 @@ class Calibrator:
             self.model = 'BittleX+Arm'
         elif config.model_ == 'NybbleQ':
             self.model = 'Nybble'
+        elif config.model_ == 'Chero':
+            self.model = 'Chero'
         else:
             self.model = config.model_
 
@@ -93,7 +114,11 @@ class Calibrator:
         else:
             self.calibButtonW = 4
         self.frameCalibButtons = Frame(self.winCalib)
-        self.frameCalibButtons.grid(row=0, column=3, rowspan=13)
+        # For Chero, position the button frame to avoid overlap with horizontal sliders
+        if self.model == 'Chero':
+            self.frameCalibButtons.grid(row=0, column=2, rowspan=14)  # Column 2 (middle) - increased by 1
+        else:
+            self.frameCalibButtons.grid(row=0, column=3, rowspan=14)  # Original position - increased by 1
         calibButton = Button(self.frameCalibButtons, text=txt('Calibrate'), fg = 'blue', width=self.calibButtonW,command=lambda cmd='c': self.calibFun(cmd))
         standButton = Button(self.frameCalibButtons, text=txt('Stand Up'), fg = 'blue', width=self.calibButtonW, command=lambda cmd='balance': self.calibFun(cmd))
         restButton = Button(self.frameCalibButtons, text=txt('Rest'),fg = 'blue', width=self.calibButtonW, command=lambda cmd='d': self.calibFun(cmd))
@@ -101,12 +126,12 @@ class Calibrator:
         saveButton = Button(self.frameCalibButtons, text=txt('Save'),fg = 'blue', width=self.calibButtonW, command=lambda: send(goodPorts, ['s', 0]))
         abortButton = Button(self.frameCalibButtons, text=txt('Abort'),fg = 'blue', width=self.calibButtonW, command=lambda: send(goodPorts, ['a', 0]))
 #        quitButton = Button(self.frameCalibButtons, text=txt('Quit'),fg = 'blue', width=self.calibButtonW, command=self.closeCalib)
-        calibButton.grid(row=6, column=0)
-        restButton.grid(row=6, column=1)
-        standButton.grid(row=6, column=2)
-        walkButton.grid(row=11, column=0)
-        saveButton.grid(row=11, column=1)
-        abortButton.grid(row=11, column=2)
+        calibButton.grid(row=7, column=0)
+        restButton.grid(row=7, column=1)
+        standButton.grid(row=7, column=2)
+        walkButton.grid(row=12, column=0)
+        saveButton.grid(row=12, column=1)
+        abortButton.grid(row=12, column=2)
 #        quitButton.grid(row=11, column=2)
 
         self.OSname = self.winCalib.call('tk', 'windowingsystem')
@@ -119,6 +144,9 @@ class Calibrator:
         if self.model == 'BittleX+Arm':
             # self.parameterSet = parameterSet['BittleX+Arm']
             scaleNames = BittleRScaleNames
+        elif self.model == 'Chero':
+            # For Chero, use RegularScaleNames but only show 6 joints
+            scaleNames = RegularScaleNames
         else:
             # self.parameterSet = parameterSet['Regular']
             scaleNames = RegularScaleNames
@@ -136,54 +164,118 @@ class Calibrator:
         Hovertip(self.imgWiring, txt('tipImgWiring'))
 
         self.imgPosture = createImage(self.frameCalibButtons, resourcePath + self.model + '_Ruler.jpeg', self.parameterSet['imageW'])
-        self.imgPosture.grid(row=7, column=0, rowspan=3, columnspan=3)
+        self.imgPosture.grid(row=3, column=0, rowspan=3, columnspan=3)
 
-        for i in range(16):
-            if i < 4:
-                tickDirection = 1
-                cSPAN = 3
-                if i < 2:
+        # For Chero, show only 6 joints; for others, show 16 joints
+        if self.model == 'Chero':
+            numJoints = 6
+        else:
+            numJoints = 16
+
+        for i in range(numJoints):
+            if self.model == 'Chero':
+                # Chero layout: joints 0,1 horizontal, joints 2,3,4,5 vertical (like DoF16 joints 8,9,10,11)
+                if i < 2:  # Joints 0, 1 - horizontal
+                    tickDirection = 1
+                    cSPAN = 2  # Each horizontal slider spans 2 columns
                     ROW = 0
-                else:
-                    ROW = self.parameterSet['rowJoint1']
-
-                if 0 < i < 3:
-                    COL = 4
-                else:
-                    COL = 0
-                rSPAN = 1
-                ORI = HORIZONTAL
-                LEN = self.parameterSet['sliderW']
-                ALIGN = 'we'
-
+                    rSPAN = 1
+                    ORI = HORIZONTAL
+                    LEN = self.parameterSet['sliderW']  # Use full slider width like SkillComposer
+                    ALIGN = 'we'
+                    
+                    if i == 0:  # Head Pan
+                        COL = 0  # Joint 0: columns 0-1 (leftmost)
+                    else:  # Head Tilt  
+                        COL = 3  # Joint 1: columns 3-4 (rightmost, skip column 2)
+                else:  # Joints 2, 3, 4, 5 - vertical (like DoF16 joints 8,9,10,11)
+                    tickDirection = -1
+                    # Map Chero joints 2,3,4,5 to DoF16 layout positions 8,9,10,11
+                    if i == 2:  # Joint 2 -> position like DoF16 joint 8 (left front)
+                        leftQ = True
+                        frontQ = True
+                    elif i == 3:  # Joint 3 -> position like DoF16 joint 9 (right front)
+                        leftQ = False
+                        frontQ = True
+                    elif i == 4:  # Joint 4 -> position like DoF16 joint 10 (right back)
+                        leftQ = False
+                        frontQ = False
+                    else:  # Joint 5 -> position like DoF16 joint 11 (left back)
+                        leftQ = True
+                        frontQ = False
+                    
+                    LEN = self.parameterSet['sliderLen']
+                    rSPAN = 3
+                    cSPAN = 1
+                    ROW = self.parameterSet['rowJoint2'] + (1 - frontQ) * (rSPAN + 2)
+                    
+                    # Use specific columns: joints 2,5 at column 0; joints 3,4 at column 4
+                    if leftQ:
+                        COL = 0  # Joints 2,5: column 0
+                        ALIGN = 'sw'
+                    else:
+                        COL = 4  # Joints 3,4: column 4
+                        ALIGN = 'se'
+                    ORI = VERTICAL
             else:
-                tickDirection = -1
-                leftQ = (i - 1) % 4 > 1
-                frontQ = i % 4 < 2
-                upperQ = i / 4 < 3
+                # Original logic for other models (16 joints)
+                if i < 4:
+                    tickDirection = 1
+                    cSPAN = 3
+                    if i < 2:
+                        ROW = 0
+                    else:
+                        ROW = self.parameterSet['rowJoint1']
 
-                rSPAN = 3
-                cSPAN = 1
-                ROW = self.parameterSet['rowJoint2'] + (1 - frontQ) * (rSPAN + 2)
+                    if 0 < i < 3:
+                        COL = 4
+                    else:
+                        COL = 0
+                    rSPAN = 1
+                    ORI = HORIZONTAL
+                    LEN = self.parameterSet['sliderW']
+                    ALIGN = 'we'
 
-                if leftQ:
-                    COL = 3 - i // 4
-                    ALIGN = 'sw'
                 else:
-                    COL = 3 + i // 4
-                    ALIGN = 'se'
-                ORI = VERTICAL
-                LEN = self.parameterSet['sliderLen']
-                # ALIGN = 'sw'
+                    tickDirection = -1
+                    leftQ = (i - 1) % 4 > 1
+                    frontQ = i % 4 < 2
+                    upperQ = i / 4 < 3
+
+                    rSPAN = 3
+                    cSPAN = 1
+                    ROW = self.parameterSet['rowJoint2'] + (1 - frontQ) * (rSPAN + 2)
+
+                    if leftQ:
+                        COL = 3 - i // 4
+                        ALIGN = 'sw'
+                    else:
+                        COL = 3 + i // 4
+                        ALIGN = 'se'
+                    ORI = VERTICAL
+                    LEN = self.parameterSet['sliderLen']
+                    # ALIGN = 'sw'
             stt = NORMAL
             if i in NaJoints[self.model]:
                 clr = 'light yellow'
             else:
                 clr = 'yellow'
-            if i in range(8, 12):
-                sideLabel = txt(sideNames[i % 8]) + '\n'
+            
+            # Set side labels
+            if self.model == 'Chero':
+                # For Chero, joints 2,3,4,5 should have side labels corresponding to DoF16 joints 8,9,10,11
+                if i in range(2, 6):  # Joints 2,3,4,5
+                    # Map Chero joints 2,3,4,5 to DoF16 joints 8,9,10,11 labels
+                    dof16_index = i + 6  # 2->8, 3->9, 4->10, 5->11
+                    sideLabel = txt(sideNames[dof16_index % 8]) + '\n'
+                else:
+                    sideLabel = ''
             else:
-                sideLabel = ''
+                if i in range(8, 12):
+                    sideLabel = txt(sideNames[i % 8]) + '\n'
+                else:
+                    sideLabel = ''
+                    
             label = Label(self.winCalib,
                           text=sideLabel + '(' + str(i) + ')\n' + txt(scaleNames[i]))
 
@@ -202,7 +294,14 @@ class Calibrator:
                                   length=LEN, tickinterval=10, resolution=1, repeatdelay=100, repeatinterval=100,
                                   command=lambda value, idx=i: self.setCalib(idx, value))
             self.calibSliders.append(sliderBar)
-            if i == 2 and scaleNames == BittleRScaleNames:
+            
+            # Special layout handling for Chero
+            if self.model == 'Chero':
+                if i < 2:  # Horizontal sliders (Head Pan/Tilt) - use cSPAN=2 like SkillComposer
+                    label.grid(row=ROW, column=COL, columnspan=cSPAN, pady=2, sticky=ALIGN)
+                else:  # Vertical sliders - use columnspan=1 to prevent overlap
+                    label.grid(row=ROW, column=COL, columnspan=1, pady=2, sticky=ALIGN)
+            elif i == 2 and scaleNames == BittleRScaleNames:
                 autoCalibButton = Button(self.winCalib, text=txt('Auto'), fg='blue',
                                          width=self.calibButtonW, command=lambda cmd='c-2': self.calibFun(cmd))
                 label.grid(row=ROW, column=COL, columnspan=2, pady=2, sticky='e')
@@ -234,26 +333,63 @@ class Calibrator:
 
             if result != -1:
                 offsets = result[1]
-                # printH('re',result)
-                # printH('of',offsets)
-                idx = offsets.find(',')
-                l1 = offsets[:idx].split()[-1]
-                offsets = ''.join(offsets[idx + 1:].split()).split(',')[:15]
-                offsets.insert(0, l1)
-                print(offsets)
-                # print(len(offsets))
+                print("Raw result:", offsets)
+                
+                # Better parsing logic for calibration data
+                # Look for numeric patterns in the data
+                import re
+                # Extract all numeric values (including negative numbers)
+                numeric_matches = re.findall(r'-?\d+(?:\.\d+)?', offsets)
+                
+                # Filter out values that are clearly not joint offsets
+                # Joint offsets should be reasonable values (typically between -50 and 50)
+                cleaned_offsets = []
+                for match in numeric_matches:
+                    try:
+                        value = float(match)
+                        # Only accept reasonable offset values
+                        if -50 <= value <= 50:
+                            cleaned_offsets.append(value)
+                    except ValueError:
+                        continue
+                
+                # If we don't have enough valid offsets, try alternative parsing
+                if len(cleaned_offsets) < 6:  # Need at least 6 for Chero
+                    # Try to find comma-separated values
+                    if ',' in offsets:
+                        parts = offsets.split(',')
+                        for part in parts:
+                            try:
+                                value = float(part.strip())
+                                if -50 <= value <= 50:
+                                    cleaned_offsets.append(value)
+                            except ValueError:
+                                continue
+                
+                # Ensure we have at least 16 offsets for compatibility
+                while len(cleaned_offsets) < 16:
+                    cleaned_offsets.append(0.0)
+                
+                # Take only the first 16 values
+                offsets = cleaned_offsets[:16]
+                print("Cleaned offsets:", offsets[:6] if self.model == 'Chero' else offsets)
             else:
                 offsets = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ]
 
             if cmd == 'c-2':
-                printH("offset2:", offsets[2])
+                print("offset2:", offsets[2])
                 if int(offsets[2]) > 25:
-                    tk.messagebox.showwarning(title=txt('Warning'), message=txt('AutoCali failed'))
+                    messagebox.showwarning(title=txt('Warning'), message=txt('AutoCali failed'))
                 else:
                     self.calibSliders[2].set(offsets[2])
             else:
-                for i in range(16):
-                    self.calibSliders[i].set(offsets[i])
+                # For Chero, only set offsets for 6 joints; for others, set all 16
+                if self.model == 'Chero':
+                    for i in range(min(6, len(self.calibSliders), len(offsets))):
+                        self.calibSliders[i].set(offsets[i])
+                else:
+                    for i in range(min(16, len(self.calibSliders), len(offsets))):
+                        self.calibSliders[i].set(offsets[i])
         elif cmd == 'd':
             self.imgPosture = createImage(self.frameCalibButtons, resourcePath + self.model + '_Rest.jpeg', imageW)
             send(goodPorts, ['d', 0])
@@ -263,7 +399,7 @@ class Calibrator:
         elif cmd == 'walk':
             self.imgPosture = createImage(self.frameCalibButtons, resourcePath + self.model + '_Walk.jpeg', imageW)
             send(goodPorts, ['kwkF', 0])
-        self.imgPosture.grid(row=7, column=0, rowspan=3, columnspan=3)
+        self.imgPosture.grid(row=3, column=0, rowspan=3, columnspan=3)
         Hovertip(self.imgPosture, txt('tipImgPosture'))
         self.winCalib.update()
 

@@ -524,8 +524,29 @@ class SkillComposer:
                           text=sideLabel + '(' + str(i) + ')\n' + txt(self.scaleNames[i]))
 
             value = DoubleVar()
+            # Special range for Chero joints
+            if self.model == 'Chero':
+                if i == 0:  # Head pan joint
+                    from_val = -45
+                    to_val = 250
+                elif i == 1:  # Head tilt joint
+                    from_val = -5
+                    to_val = 125
+                elif i in [2, 3]:  # Shoulder joints
+                    from_val = -85
+                    to_val = 70
+                elif i in [4, 5]:  # Arm joints
+                    from_val = -80
+                    to_val = 85
+                else:
+                    from_val = -180 * tickDirection
+                    to_val = 180 * tickDirection
+            else:
+                from_val = -180 * tickDirection
+                to_val = 180 * tickDirection
+            
             sliderBar = Scale(self.frameController, state=stt, fg='blue', bg=clr, variable=value, orient=ORI,
-                              borderwidth=2, relief='flat', width=8, from_=-180 * tickDirection, to=180 * tickDirection,
+                              borderwidth=2, relief='flat', width=8, from_=from_val, to=to_val,
                               length=LEN, tickinterval=90, resolution=1, repeatdelay=100, repeatinterval=100,
                               command=lambda value, idx=i: self.setAngle(idx, value))
             sliderBar.set(0)
@@ -1313,13 +1334,17 @@ class SkillComposer:
                 frame[2][copyFrom:copyFrom + frameSize] = copy.deepcopy(
                     skillData[header + frameSize * f:header + frameSize * (f + 1)])
             if skillData[3] > 1:
+                # Apply angle ratio to all joints first
                 if self.model == 'Chero':
-                    # For Chero, multiply only the actual joint positions
-                    frame[2][4:6] = list(map(lambda x: x * 2, frame[2][4:6]))  # joints 0,1
-                    frame[2][12:16] = list(map(lambda x: x * 2, frame[2][12:16]))  # joints 2,3,4,5
+                    frame[2][4:6] = list(map(lambda x: x * skillData[3], frame[2][4:6]))  # joints 0,1
+                    frame[2][12:16] = list(map(lambda x: x * skillData[3], frame[2][12:16]))  # joints 2,3,4,5
                 else:
-                    frame[2][4:20] = list(map(lambda x: x * 2, frame[2][4:20]))
+                    frame[2][4:20] = list(map(lambda x: x * skillData[3], frame[2][4:20]))
                 print(frame[2][4:24])
+            
+            # Special handling for Chero joint 0 (head pan joint) - independent of angle ratio
+            if self.model == 'Chero':
+                frame[2][4] = frame[2][4] * 2
 
             if skillData[0] < 0:
                 if f == loopFrom or f == loopTo:
@@ -1403,13 +1428,17 @@ class SkillComposer:
                 frame[2][copyFrom:copyFrom + frameSize] = copy.deepcopy(
                     skillData[header + frameSize * f:header + frameSize * (f + 1)])
             if skillData[3] > 1:
+                # Apply angle ratio to all joints first
                 if self.model == 'Chero':
-                    # For Chero, multiply only the actual joint positions
-                    frame[2][4:6] = list(map(lambda x: x * 2, frame[2][4:6]))  # joints 0,1
-                    frame[2][12:16] = list(map(lambda x: x * 2, frame[2][12:16]))  # joints 2,3,4,5
+                    frame[2][4:6] = list(map(lambda x: x * skillData[3], frame[2][4:6]))  # joints 0,1
+                    frame[2][12:16] = list(map(lambda x: x * skillData[3], frame[2][12:16]))  # joints 2,3,4,5
                 else:
-                    frame[2][4:20] = list(map(lambda x: x * 2, frame[2][4:20]))
+                    frame[2][4:20] = list(map(lambda x: x * skillData[3], frame[2][4:20]))
                 print(frame[2][4:24])
+            
+            # Special handling for Chero joint 0 (head pan joint) - independent of angle ratio
+            if self.model == 'Chero':
+                frame[2][4] = frame[2][4] * 2
 
             if skillData[0] < 0:
                 if f == loopFrom or f == loopTo:
@@ -1922,7 +1951,12 @@ class SkillComposer:
         if angleRatio == 2:
             for r in skillData:
                 if frameSize == 10:  # Chero - only divide the first 6 joint angles, not the last 4 description values
-                    r[:6] = list(map(lambda x: x // angleRatio, r[:6]))
+                    # Special handling for Chero joint 0 (head pan joint) - divide by 2 first
+                    if self.model == 'Chero':
+                        r[0] = r[0] // 2  # joint 0
+                        r[1:6] = list(map(lambda x: x // angleRatio, r[1:6]))  # other joints
+                    else:
+                        r[:6] = list(map(lambda x: x // angleRatio, r[:6]))
                 elif frameSize == 8 or frameSize == 12:
                     r = list(map(lambda x: x // angleRatio, r))
                 elif frameSize == 20:

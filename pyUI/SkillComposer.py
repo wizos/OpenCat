@@ -1320,6 +1320,10 @@ class SkillComposer:
             if f != 0:
                 self.addFrame(f)
             frame = self.frameList[f]
+            # Save body angles from skillData[1] and skillData[2] to frame[2][0] and frame[2][1] (common for all models)
+            frame[2][0] = skillData[1]  # body angle 1
+            frame[2][1] = skillData[2]  # body angle 2
+            
             if self.model == 'Chero':
                 # For Chero, load the 10 values (6 joints + 4 description)
                 dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
@@ -1414,6 +1418,10 @@ class SkillComposer:
             if f != 0:
                 self.addFrame(f)
             frame = self.frameList[f]
+            # Save body angles from skillData[1] and skillData[2] to frame[2][0] and frame[2][1] (common for all models)
+            frame[2][0] = skillData[1]  # body angle 1
+            frame[2][1] = skillData[2]  # body angle 2
+            
             if self.model == 'Chero':
                 # For Chero, load the 10 values (6 joints + 4 description)
                 dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
@@ -1971,8 +1979,15 @@ class SkillComposer:
                 self.getWidget(f, cLoop).deselect()
             self.frameRowScheduler.update()
 
+        # Get body angles from the first frame (they should be the same for all frames)
+        bodyAngle1 = 0
+        bodyAngle2 = 0
+        if len(self.frameList) > 0:
+            bodyAngle1 = self.frameList[0][2][0]  # body angle 1
+            bodyAngle2 = self.frameList[0][2][1]  # body angle 2
+        
         print('{')
-        print('{:>4},{:>4},{:>4},{:>4},'.format(*[period, 0, 0, angleRatio]))
+        print('{:>4},{:>4},{:>4},{:>4},'.format(*[period, bodyAngle1, bodyAngle2, angleRatio]))
         if period < 0 and self.gaitOrBehavior.get() == txt('Behavior'):
             print('{:>4},{:>4},{:>4},'.format(*[loopStructure[0], loopStructure[-1], self.loopRepeat.get()]))
         for row in skillData:
@@ -1991,7 +2006,7 @@ class SkillComposer:
             fileData += 'Date: ' + x.strftime("%b")+' '+x.strftime("%d")+', '+x.strftime("%Y") + '\n\n'
             fileData += '# [Demo](www.youtube.com) You can modify the link in the round brackets\n\n'
             fileData += '# Token\nK\n\n'
-            fileData += '# Data\n{\n' + '{:>4},{:>4},{:>4},{:>4},\n'.format(*[period, 0, 0, angleRatio])
+            fileData += '# Data\n{\n' + '{:>4},{:>4},{:>4},{:>4},\n'.format(*[period, bodyAngle1, bodyAngle2, angleRatio])
             if period < 0 and self.gaitOrBehavior.get() == txt('Behavior'):
                 fileData += '{:>4},{:>4},{:>4},\n'.format(*[loopStructure[0], loopStructure[-1], self.loopRepeat.get()])
             logger.debug(f"skillData: {skillData}")
@@ -2022,7 +2037,7 @@ class SkillComposer:
 
         if self.gaitOrBehavior.get() == txt('Behavior'):
             skillData.insert(0, [loopStructure[0], loopStructure[-1], int(self.loopRepeat.get())])
-        skillData.insert(0, [period, 0, 0, angleRatio])
+        skillData.insert(0, [period, bodyAngle1, bodyAngle2, angleRatio])
         
         # Handle special case: when activeFrame is in middle, create partial data for robot
         isMiddleFrame = originalActiveFrame != 0 and originalActiveFrame + 1 != self.totalFrame and originalActiveFrame < self.totalFrame
@@ -2038,10 +2053,10 @@ class SkillComposer:
                 partialRepeat = int(self.loopRepeat.get()) if loopStructure[1] >= originalActiveFrame else 0
                 
                 # Build partial array: [header, loop_info, frames_from_activeFrame...]
-                partialSkillData = [[partialPeriod, 0, 0, angleRatio], [partialLoopStart, partialLoopEnd, partialRepeat]] + skillData[2 + originalActiveFrame:]
+                partialSkillData = [[partialPeriod, bodyAngle1, bodyAngle2, angleRatio], [partialLoopStart, partialLoopEnd, partialRepeat]] + skillData[2 + originalActiveFrame:]
             else:  # Gait
                 # Build partial array: [header, frames_from_activeFrame...]
-                partialSkillData = [[partialPeriod, 0, 0, angleRatio]] + skillData[1 + originalActiveFrame:]
+                partialSkillData = [[partialPeriod, bodyAngle1, bodyAngle2, angleRatio]] + skillData[1 + originalActiveFrame:]
             
             flat_list = [item for sublist in partialSkillData for item in sublist]
         else:
@@ -2057,7 +2072,8 @@ class SkillComposer:
         for f in self.frameList:
             f[1].destroy()
         self.frameList.clear()
-        self.frameData = [0, 0, 0, 0,
+        # Reset frameData including body angles (positions 0,1) to 0
+        self.frameData = [0, 0, 0, 0,  # body angles (0,1) and other data (2,3)
                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                           8, 0, 0, 0, ]
         self.totalFrame = 0

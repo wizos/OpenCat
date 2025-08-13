@@ -1293,7 +1293,7 @@ class SkillComposer:
             header = 4
             if skillData[0] == 1:  # posture
                 if self.model == 'Chero':
-                    frameSize = 10  # 6 joints + 4 description values
+                    frameSize = 10  # 6 joints + 4 description values (Chero posture)
                 else:
                     frameSize = 16
                 copyFrom = 4
@@ -1302,9 +1302,11 @@ class SkillComposer:
                     frameSize = 12
                     copyFrom = 8
                 elif self.model == 'Chero':
-                    frameSize = 10  # 6 joints + 4 description values
-                    copyFrom = 4
+                    # Chero gait only needs 4 leg joints
+                    frameSize = 4
+                    copyFrom = None  # handled specially below
                 else:
+                    # Other 8-DoF gaits use 8 columns mapped to leg joints
                     frameSize = 8
                     copyFrom = 12
             self.gaitOrBehavior.set(txt('Gait'))
@@ -1325,29 +1327,39 @@ class SkillComposer:
             frame[2][1] = skillData[2]  # body angle 2
             
             if self.model == 'Chero':
-                # For Chero, load the 10 values (6 joints + 4 description)
-                dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
-                # Map Chero joints to correct DoF16 positions:
-                # Chero joints 0,1 → DoF16 positions 0,1 (frame[2][4:6])
-                frame[2][4:6] = copy.deepcopy(dof6FData[:2])
-                # Chero joints 2,3,4,5 → DoF16 positions 8,9,10,11 (frame[2][12:16])
-                frame[2][12:16] = copy.deepcopy(dof6FData[2:6])
-                # Assign description values to positions 20-23
-                frame[2][20:24] = copy.deepcopy(dof6FData[6:10])
+                # Distinguish between Behavior/Posture (10 cols) and Gait (4 cols)
+                if frameSize == 10:
+                    # For Chero behavior/posture: 6 joints + 4 description
+                    dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
+                    # Chero joints 0,1 → DoF16 positions 0,1 (frame[2][4:6])
+                    frame[2][4:6] = copy.deepcopy(dof6FData[:2])
+                    # Chero joints 2,3,4,5 → DoF16 positions 8,9,10,11 (frame[2][12:16])
+                    frame[2][12:16] = copy.deepcopy(dof6FData[2:6])
+                    # Assign description values to positions 20-23
+                    frame[2][20:24] = copy.deepcopy(dof6FData[6:10])
+                else:
+                    # Chero gait: 4 leg joints → map directly to DoF16 positions 8,9,10,11
+                    gait4 = skillData[header + frameSize * f:header + frameSize * (f + 1)]
+                    frame[2][12:16] = copy.deepcopy(gait4)
             else:
                 frame[2][copyFrom:copyFrom + frameSize] = copy.deepcopy(
                     skillData[header + frameSize * f:header + frameSize * (f + 1)])
             if skillData[3] > 1:
                 # Apply angle ratio to all joints first
                 if self.model == 'Chero':
-                    frame[2][4:6] = list(map(lambda x: x * skillData[3], frame[2][4:6]))  # joints 0,1
-                    frame[2][12:16] = list(map(lambda x: x * skillData[3], frame[2][12:16]))  # joints 2,3,4,5
+                    if frameSize == 10:
+                        # behavior/posture: scale both head (0,1) and legs (2..5)
+                        frame[2][4:6] = list(map(lambda x: x * skillData[3], frame[2][4:6]))
+                        frame[2][12:16] = list(map(lambda x: x * skillData[3], frame[2][12:16]))
+                    else:
+                        # gait: only 4 leg joints exist
+                        frame[2][12:16] = list(map(lambda x: x * skillData[3], frame[2][12:16]))
                 else:
                     frame[2][4:20] = list(map(lambda x: x * skillData[3], frame[2][4:20]))
                 print(frame[2][4:24])
             
-            # Special handling for Chero joint 0 (head pan joint) - independent of angle ratio
-            if self.model == 'Chero':
+            # Special handling for Chero joint 0 (head pan) for behavior/posture only
+            if self.model == 'Chero' and frameSize == 10:
                 frame[2][4] = frame[2][4] * 2
 
             if skillData[0] < 0:
@@ -1394,16 +1406,21 @@ class SkillComposer:
         else:
             header = 4
             if skillData[0] == 1:  # posture
-                frameSize = 16
+                if self.model == 'Chero':
+                    frameSize = 10  # 6 joints + 4 description values (Chero posture)
+                else:
+                    frameSize = 16
                 copyFrom = 4
             else:  # gait
                 if self.model == 'DoF16':
                     frameSize = 12
                     copyFrom = 8
                 elif self.model == 'Chero':
-                    frameSize = 10  # 6 joints + 4 description values
-                    copyFrom = 4
+                    # Chero gait only needs 4 leg joints
+                    frameSize = 4
+                    copyFrom = None  # handled specially below
                 else:
+                    # Other 8-DoF gaits use 8 columns mapped to leg joints
                     frameSize = 8
                     copyFrom = 12
             self.gaitOrBehavior.set(txt('Gait'))
@@ -1423,29 +1440,39 @@ class SkillComposer:
             frame[2][1] = skillData[2]  # body angle 2
             
             if self.model == 'Chero':
-                # For Chero, load the 10 values (6 joints + 4 description)
-                dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
-                # Map Chero joints to correct DoF16 positions:
-                # Chero joints 0,1 → DoF16 positions 0,1 (frame[2][4:6])
-                frame[2][4:6] = copy.deepcopy(dof6FData[:2])
-                # Chero joints 2,3,4,5 → DoF16 positions 8,9,10,11 (frame[2][12:16])
-                frame[2][12:16] = copy.deepcopy(dof6FData[2:6])
-                # Assign description values to positions 20-23
-                frame[2][20:24] = copy.deepcopy(dof6FData[6:10])
+                # Distinguish between Behavior/Posture (10 cols) and Gait (4 cols)
+                if frameSize == 10:
+                    # For Chero behavior/posture: 6 joints + 4 description
+                    dof6FData = skillData[header + frameSize * f:header + frameSize * (f + 1)]
+                    # Chero joints 0,1 → DoF16 positions 0,1 (frame[2][4:6])
+                    frame[2][4:6] = copy.deepcopy(dof6FData[:2])
+                    # Chero joints 2,3,4,5 → DoF16 positions 8,9,10,11 (frame[2][12:16])
+                    frame[2][12:16] = copy.deepcopy(dof6FData[2:6])
+                    # Assign description values to positions 20-23
+                    frame[2][20:24] = copy.deepcopy(dof6FData[6:10])
+                else:
+                    # Chero gait: 4 leg joints → map directly to DoF16 positions 8,9,10,11
+                    gait4 = skillData[header + frameSize * f:header + frameSize * (f + 1)]
+                    frame[2][12:16] = copy.deepcopy(gait4)
             else:
                 frame[2][copyFrom:copyFrom + frameSize] = copy.deepcopy(
                     skillData[header + frameSize * f:header + frameSize * (f + 1)])
             if skillData[3] > 1:
                 # Apply angle ratio to all joints first
                 if self.model == 'Chero':
-                    frame[2][4:6] = list(map(lambda x: x * skillData[3], frame[2][4:6]))  # joints 0,1
-                    frame[2][12:16] = list(map(lambda x: x * skillData[3], frame[2][12:16]))  # joints 2,3,4,5
+                    if frameSize == 10:
+                        # behavior/posture: scale both head (0,1) and legs (2..5)
+                        frame[2][4:6] = list(map(lambda x: x * skillData[3], frame[2][4:6]))
+                        frame[2][12:16] = list(map(lambda x: x * skillData[3], frame[2][12:16]))
+                    else:
+                        # gait: only 4 leg joints exist
+                        frame[2][12:16] = list(map(lambda x: x * skillData[3], frame[2][12:16]))
                 else:
                     frame[2][4:20] = list(map(lambda x: x * skillData[3], frame[2][4:20]))
                 print(frame[2][4:24])
             
-            # Special handling for Chero joint 0 (head pan joint) - independent of angle ratio
-            if self.model == 'Chero':
+            # Special handling for Chero joint 0 (head pan) for behavior/posture only
+            if self.model == 'Chero' and frameSize == 10:
                 frame[2][4] = frame[2][4] * 2
 
             if skillData[0] < 0:
@@ -1898,8 +1925,9 @@ class SkillComposer:
             frameSize = 12
             copyFrom = 8
         elif self.model == 'Chero':
-            frameSize = 10  # 6 joints + 4 description values
-            copyFrom = 4
+            # Default to gait mapping; will be overridden for Behavior/Posture below
+            frameSize = 4  # Chero gait: 4 leg joints only
+            copyFrom = 12
         else:
             frameSize = 8
             copyFrom = 12
@@ -1944,12 +1972,13 @@ class SkillComposer:
             self.updateSliders(self.frameData)
             self.changeButtonState(f)
             self.frameController.update()
-            if self.model == 'Chero':
-                # For Chero, extract the 6 joints from correct positions + 4 description values
-                cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])  # joints 0,1 + 2,3,4,5
-                dof6FData = cheroJoints + list(self.frameData[20:24])  # 6 joints + 4 description values
+            if self.model == 'Chero' and frameSize == 10:
+                # Behavior/Posture for Chero: 6 joints + 4 description values
+                cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])
+                dof6FData = cheroJoints + list(self.frameData[20:24])
                 skillData.append(dof6FData)
             else:
+                # Gait (including Chero 4-col) and other models use slice
                 skillData.append(self.frameData[copyFrom: copyFrom + frameSize])
         print(skillData)
         if period == 1:
@@ -1958,14 +1987,14 @@ class SkillComposer:
             return
         if angleRatio == 2:
             for r in skillData:
-                if frameSize == 10:  # Chero - only divide the first 6 joint angles, not the last 4 description values
+                if frameSize == 10:  # Chero Behavior/Posture - only divide the first 6 joint angles
                     # Special handling for Chero joint 0 (head pan joint) - divide by 2 first
                     if self.model == 'Chero':
                         r[0] = r[0] // 2  # joint 0
                         r[1:6] = list(map(lambda x: x // angleRatio, r[1:6]))  # other joints
                     else:
                         r[:6] = list(map(lambda x: x // angleRatio, r[:6]))
-                elif frameSize == 8 or frameSize == 12:
+                elif frameSize == 8 or frameSize == 12 or frameSize == 4:
                     r = list(map(lambda x: x // angleRatio, r))
                 elif frameSize == 20:
                     r[:16] = list(map(lambda x: x // angleRatio, r[:16]))
@@ -2173,9 +2202,19 @@ class SkillComposer:
                 if self.binderValue[idx].get() == 0:
                     self.frameData[frame_idx] = value
                     if -126 < value < 126:
+                        print(f"DEBUG: Sending I command for Chero joint {idx}: I {idx} {value}")
                         send(ports, ['I', [idx, value], 0.05])
                     else:
-                        send(ports, ['i', [idx, value], 0.05])
+                        # Special handling for Chero joint 0 (head pan) - use m0 command for large angles
+                        if idx == 0:
+                            # For head pan joint, send m0 command with angle divided by 2
+                            # because Arduino will divide by 2 again for int8_t compatibility
+                            adjusted_angle = value // 2
+                            print(f"DEBUG: Sending m command for Chero head pan joint 0: m 0 {adjusted_angle} (original: {value})")
+                            send(ports, ['m', [0, adjusted_angle], 0.05])
+                        else:
+                            print(f"DEBUG: Sending i command for Chero joint {idx}: i {idx} {value}")
+                            send(ports, ['i', [idx, value], 0.05])
                 else:
                     diff = value - self.frameData[frame_idx]
                     indexedList = list()
@@ -2192,9 +2231,42 @@ class SkillComposer:
                     if len(indexedList) > 10:
                         # Send only the actual Chero joint positions
                         cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])
-                        send(ports, ['L', cheroJoints, 0.05])
+                        
+                        # Check if joint 0 (head pan) has large angle
+                        if cheroJoints[0] < -125 or cheroJoints[0] > 125:
+                            joint0_angle = cheroJoints[0]
+                            # Clamp joint 0 to valid range for L command
+                            cheroJoints[0] = max(min(joint0_angle, 125), -125)
+                            print(f"DEBUG: Sending L command with clamped joint 0, then m command for large angle")
+                            send(ports, ['L', cheroJoints, 0.01])  # Send L command first with short delay
+                            # Then send separate m command for joint 0 with correct large angle
+                            adjusted_angle = joint0_angle // 2
+                            print(f"DEBUG: Sending m command for Chero head pan joint 0: m 0 {adjusted_angle} (original: {joint0_angle})")
+                            send(ports, ['m', [0, adjusted_angle], 0.05])
+                        else:
+                            print(f"DEBUG: Sending L command for all Chero joints: L {cheroJoints}")
+                            send(ports, ['L', cheroJoints, 0.05])
                     elif len(indexedList):
-                        send(ports, ['I', indexedList, 0.05])
+                        # Check if Chero joint 0 has large angle and handle separately
+                        large_angle_joints = []
+                        normal_joints = []
+                        
+                        for i in range(0, len(indexedList), 2):
+                            joint_idx = indexedList[i]
+                            joint_angle = indexedList[i + 1]
+                            
+                            if joint_idx == 0 and (joint_angle < -125 or joint_angle > 125):
+                                # Handle Chero joint 0 with large angle using m command
+                                adjusted_angle = joint_angle // 2
+                                print(f"DEBUG: Sending m command for bound Chero head pan joint 0: m 0 {adjusted_angle} (original: {joint_angle})")
+                                send(ports, ['m', [0, adjusted_angle], 0.05])
+                            else:
+                                normal_joints.extend([joint_idx, joint_angle])
+                        
+                        # Send normal joints with I command if any remain
+                        if normal_joints:
+                            print(f"DEBUG: Sending I command for bound Chero joints: I {normal_joints}")
+                            send(ports, ['I', normal_joints, 0.05])
             else:
                 # Original logic for other models
                 if self.binderValue[idx].get() == 0:

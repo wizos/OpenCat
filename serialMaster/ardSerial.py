@@ -977,11 +977,12 @@ def replug(PortList, needSendTask=True, needOpenPort=True):
     window.focus_force()  # new window gets focus
     window.mainloop()
     
-def selectList(PortList,ls,win, needSendTask=True, needOpenPort=True):
+def selectList(PortList,ls,win, portMap, needSendTask=True, needOpenPort=True):
     
     global goodPortCount
     for i in ls.curselection():
-        p = ls.get(i)#.split('/')[-1]
+        displayName = ls.get(i)
+        p = portMap.get(displayName, displayName)
         try:
             print(p)
             print(p.split('/')[-1])
@@ -1008,26 +1009,52 @@ def manualSelect(PortList, window, needSendTask=True, needOpenPort=True):
     # allPorts = deleteDuplicatedUsbSerial(Communication.Print_Used_Com())
     allPorts = Communication.Print_Used_Com()
     window.title(txt('Manual mode'))
+    # Make window reasonably sized and resizable
+    try:
+        window.geometry('720x420+700+400')
+    except Exception:
+        pass
+    window.resizable(True, True)
+    window.grid_columnconfigure(0, weight=1)
+    window.grid_rowconfigure(2, weight=1)
     l1 = tk.Label(window, font = 'sans 14 bold')
     l1['text'] = txt('Manual mode')
-    l1.grid(row=0,column = 0)
+    l1.grid(row=0,column = 0, sticky='w', padx=5, pady=5)
     l2 = tk.Label(window, font='sans 14 bold')
     l2["text"]=txt('Please select the port from the list')
-    l2.grid(row=1,column=0)
-    ls = tk.Listbox(window,selectmode="multiple")
-    ls.grid(row=2,column=0)
+    l2.grid(row=1,column=0, sticky='w', padx=5)
+    ls = tk.Listbox(window, selectmode="multiple")
+    ls.grid(row=2, column=0, sticky='nsew', padx=5, pady=5)
+
+    # Map display names to full paths (hide parent directories)
+    portMap = {}
+    def populate_listbox(ports):
+        ls.delete(0, tk.END)
+        portMap.clear()
+        nameCount = {}
+        for p in ports:
+            base = p.split('/')[-1]
+            # Ensure uniqueness if duplicates
+            disp = base
+            if base in nameCount:
+                nameCount[base] += 1
+                disp = f"{base} ({nameCount[base]})"
+            else:
+                nameCount[base] = 1
+            portMap[disp] = p
+            ls.insert(tk.END, disp)
+
+    populate_listbox(allPorts)
+
     def refreshBox(ls):
         # allPorts = deleteDuplicatedUsbSerial(Communication.Print_Used_Com())
-        allPorts = Communication.Print_Used_Com()
-        ls.delete(0,tk.END)
-        for p in allPorts:
-            ls.insert(tk.END,p)
-    for p in allPorts:
-        ls.insert(tk.END,p)
-    bu = tk.Button(window, text=txt('OK'), command=lambda:selectList(PortList, ls, window, needSendTask, needOpenPort))
-    bu.grid(row=2, column=1)
+        ports = Communication.Print_Used_Com()
+        populate_listbox(ports)
+
+    bu = tk.Button(window, text=txt('OK'), command=lambda:selectList(PortList, ls, window, portMap, needSendTask, needOpenPort))
+    bu.grid(row=2, column=1, sticky='n', padx=5, pady=5)
     bu2 = tk.Button(window, text=txt('Refresh'), command=lambda:refreshBox(ls))
-    bu2.grid(row=1, column=1)
+    bu2.grid(row=1, column=1, sticky='n', padx=5)
     tk.messagebox.showwarning(title=txt('Warning'), message=txt('Manual mode'))
     window.mainloop()
 

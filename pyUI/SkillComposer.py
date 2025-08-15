@@ -1951,9 +1951,10 @@ class SkillComposer:
             frame = self.frameList[f]
             self.frameData = copy.deepcopy(frame[2])
             if self.model == 'Chero':
-                # For Chero, check the actual joint positions for angle range
-                cheroJoints = list(self.frameData[4:6]) + list(self.frameData[12:16])  # joints 0,1 + 2,3,4,5
-                if max(cheroJoints) > 125 or min(cheroJoints) < -125:
+                # For Chero, head pan (joint 0) is handled separately and should NOT trigger global angleRatio
+                # Check only joints 1..5 for global scaling
+                cheroNonHead = [self.frameData[5]] + list(self.frameData[12:16])  # joint 1 + legs 2..5
+                if len(cheroNonHead) and (max(cheroNonHead) > 125 or min(cheroNonHead) < -125):
                     angleRatio = 2
             else:
                 if max(self.frameData[4:20]) > 125 or min(self.frameData[4:20]) < -125:
@@ -1985,17 +1986,22 @@ class SkillComposer:
             print(self.frameData[4:20])
             send(ports, ['L', self.frameData[4:20], 0.05])
             return
+        # Always handle Chero head pan (joint 0) separately: if exceeding range, divide by 2 for export only
+        if self.model == 'Chero' and frameSize == 10:
+            for r in skillData:
+                if r[0] > 125 or r[0] < -125:
+                    r[0] = r[0] // 2
+
         if angleRatio == 2:
             for r in skillData:
-                if frameSize == 10:  # Chero Behavior/Posture - only divide the first 6 joint angles
-                    # Special handling for Chero joint 0 (head pan joint) - divide by 2 first
+                if frameSize == 10:
                     if self.model == 'Chero':
-                        r[0] = r[0] // 2  # joint 0
-                        r[1:6] = list(map(lambda x: x // angleRatio, r[1:6]))  # other joints
+                        # Only scale joints 1..5; joint 0 already handled above and should not affect angleRatio
+                        r[1:6] = list(map(lambda x: x // angleRatio, r[1:6]))
                     else:
                         r[:6] = list(map(lambda x: x // angleRatio, r[:6]))
                 elif frameSize == 8 or frameSize == 12 or frameSize == 4:
-                    r = list(map(lambda x: x // angleRatio, r))
+                    r[:] = list(map(lambda x: x // angleRatio, r))
                 elif frameSize == 20:
                     r[:16] = list(map(lambda x: x // angleRatio, r[:16]))
         if len(loopStructure) < 2:
@@ -2207,10 +2213,9 @@ class SkillComposer:
                     else:
                         # Special handling for Chero joint 0 (head pan) - use m0 command for large angles
                         if idx == 0:
-                            # For head pan joint, send m0 command with angle divided by 2
-                            # because Arduino will divide by 2 again for int8_t compatibility
-                            adjusted_angle = value // 2
-                            print(f"DEBUG: Sending m command for Chero head pan joint 0: m 0 {adjusted_angle} (original: {value})")
+                            # Send ASCII 'm' with the original angle (no division by 2)
+                            adjusted_angle = value
+                            print(f"DEBUG: Sending m command for Chero head pan joint 0: m 0 {adjusted_angle}")
                             send(ports, ['m', [0, adjusted_angle], 0.05])
                         else:
                             print(f"DEBUG: Sending i command for Chero joint {idx}: i {idx} {value}")
@@ -2240,8 +2245,8 @@ class SkillComposer:
                             print(f"DEBUG: Sending L command with clamped joint 0, then m command for large angle")
                             send(ports, ['L', cheroJoints, 0.01])  # Send L command first with short delay
                             # Then send separate m command for joint 0 with correct large angle
-                            adjusted_angle = joint0_angle // 2
-                            print(f"DEBUG: Sending m command for Chero head pan joint 0: m 0 {adjusted_angle} (original: {joint0_angle})")
+                            adjusted_angle = joint0_angle
+                            print(f"DEBUG: Sending m command for Chero head pan joint 0: m 0 {adjusted_angle}")
                             send(ports, ['m', [0, adjusted_angle], 0.05])
                         else:
                             print(f"DEBUG: Sending L command for all Chero joints: L {cheroJoints}")
@@ -2256,9 +2261,9 @@ class SkillComposer:
                             joint_angle = indexedList[i + 1]
                             
                             if joint_idx == 0 and (joint_angle < -125 or joint_angle > 125):
-                                # Handle Chero joint 0 with large angle using m command
-                                adjusted_angle = joint_angle // 2
-                                print(f"DEBUG: Sending m command for bound Chero head pan joint 0: m 0 {adjusted_angle} (original: {joint_angle})")
+                                # Handle Chero joint 0 with large angle using m command (no division by 2)
+                                adjusted_angle = joint_angle
+                                print(f"DEBUG: Sending m command for bound Chero head pan joint 0: m 0 {adjusted_angle}")
                                 send(ports, ['m', [0, adjusted_angle], 0.05])
                             else:
                                 normal_joints.extend([joint_idx, joint_angle])

@@ -1,4 +1,4 @@
-#define SOFTWARE_VERSION "N_250224"  //NyBoard + YYMMDD
+#define SOFTWARE_VERSION "N_250916"  //NyBoard + YYMMDD
 //board configuration
 // -- comment out these blocks to save program space for your own codes --
 #define BUZZER 5
@@ -450,7 +450,6 @@ float protectiveShift;  //reduce the wearing of the potentiometer
 
 void initRobot() {
   //----------------------------------
-  beep(20);
 #ifdef MAIN_SKETCH  // **
   PTL('k');
   PTLF("\n* Start *");
@@ -538,6 +537,7 @@ void initRobot() {
 #endif
 #endif  // **
   PTLF("Ready!");
+  beep(20);
 #ifndef MAIN_SKETCH
   PCA9685CalibrationPrompt();
 #endif

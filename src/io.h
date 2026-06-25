@@ -71,6 +71,9 @@ void readSignal() {
 #ifdef VOICE_LD3320
   read_voice_ld3320();
 #endif
+#ifdef AI_VOICE
+  read_voice_AI();
+#endif
   long current = millis();
   if (newCmdIdx && newCmdIdx <= 2) {
     idleTimer = millis() +

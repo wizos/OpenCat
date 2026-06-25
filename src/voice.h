@@ -6,11 +6,11 @@
 // Rongzhong Li
 // Petoi LLC
 // Jan 12, 2023
-#ifdef VOICE
+
 #include <SoftwareSerial.h>
 SoftwareSerial Serial2(8, 9);  //Rx, Tx
-#endif
-#define SERIAL2_BAUD_RATE 9600
+
+#define SERIAL2_BAUD_RATE 9600  // 9600 for Petoi Voice Command Module
 #define MAX_CUSTOMIZED_CMD 10
 
 // Speak "start learning" to record your voice commands in order. You can record up to 10 voice commands

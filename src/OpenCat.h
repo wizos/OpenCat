@@ -1,4 +1,4 @@
-#define SOFTWARE_VERSION "N_250916"  //NyBoard + YYMMDD
+#define SOFTWARE_VERSION "N_260625"  //NyBoard + YYMMDD
 //board configuration
 // -- comment out these blocks to save program space for your own codes --
 #define BUZZER 5
@@ -408,6 +408,8 @@ float protectiveShift;  //reduce the wearing of the potentiometer
 #include "voice.h"
 #elif defined VOICE_LD3320
 #include "voiceLD3320.h"
+#elif defined AI_VOICE
+#include "voiceAI.h"
 #elif defined CAMERA
 #include "camera.h"
 #elif defined ULTRASONIC
@@ -492,6 +494,10 @@ void initRobot() {
 #ifdef VOICE_LD3320
   voiceLD3320Setup();
 #endif
+#ifdef AI_VOICE
+  voiceAISetup();
+#endif
+
 #ifdef CAMERA
   cameraSetup();
 #endif

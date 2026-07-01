@@ -134,11 +134,29 @@ void read_voice() {
       }
       if (enableVoiceQ) {
         const char *cmd = raw.c_str() + shift;
-        tQueue->addTask(token, shift > 0 ? cmd : "", 2000);
-        char end = cmd[strlen(cmd) - 1];
-        if (!strcmp(cmd, "bk") || !strcmp(cmd, "x") || end >= 'A' && end <= 'Z' || end == 'x') {
+        strcpy(newCmd, cmd);
+        char *space = strchr(newCmd, ' ');
+        int param = 0;
+        if (space) {
+          param = atoi(space + 1);
+          cmdLen = space - newCmd;
+          newCmd[cmdLen] = '\0';
+        } else
+          cmdLen = strlen(newCmd);
+
+        //For debugging
+        // PTLF("XZ RX");
+        // PT(token);
+        // PT(newCmd);
+        // PTL();
+
+        char end = cmdLen > 0 ? newCmd[cmdLen - 1] : '\0';
+        int delay = 2000;
+        if ((end == 'F' || end == 'L' || end == 'R') && param > 0 && param <= 10)
+          delay = 500 * param;
+        tQueue->addTask(token, newCmd, delay);
+        if (!strcmp(newCmd, "bk") || !strcmp(newCmd, "x") || (end >= 'A' && end <= 'Z') || end == 'x')
           tQueue->addTask('k', "up");
-        }
       }
     }
   }

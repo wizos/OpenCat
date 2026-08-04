@@ -12,6 +12,7 @@ The framework handles the hard parts — gait coordination, servo control, IMU i
 ---
 
 ## Coming Soon: Quaddle
+![](https://github.com/PetoiCamp/NonCodeFiles/blob/master/gif/quaddleCover.gif?raw=true)
 
 [Quaddle](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat) is Petoi's newest quadruped, launching on Kickstarter in August 2026 — a mini desk robot built on the same OpenCat lineage as Bittle and Nybble. What makes it worth a look: it's a full quadruped running on just 4 servos instead of the usual 8–12, which forces genuinely different gait-design and leg-coordination solutions to still get all four legs walking, running, and balancing. Same open platform this repo already supports for gait research, RL, and sim2real work.
 

@@ -11,6 +11,14 @@ The framework handles the hard parts — gait coordination, servo control, IMU i
 
 ---
 
+## Coming Soon: Quaddle
+
+[Quaddle](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat) is Petoi's newest quadruped, launching on Kickstarter in August 2026 — a mini desk robot built on the same OpenCat lineage as Bittle and Nybble. What makes it worth a look: it's a full quadruped running on just 4 servos instead of the usual 8–12, which forces genuinely different gait-design and leg-coordination solutions to still get all four legs walking, running, and balancing. Same open platform this repo already supports for gait research, RL, and sim2real work.
+
+**Source code is not yet public.** The ESP32-S3 code structure is similar to this repo and closer to [OpenCatESP32](https://github.com/PetoiCamp/OpenCatEsp32-Quadruped-Robot), which already powers thousands of Bittle X and Nybble Q robots in the field. Improvements and documentation are underway. We plan to release it later this year, before product delivery. Watch this repo and [r/petoi](https://www.reddit.com/r/Petoi/) for the announcement, or [reserve a spot](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat) to get notified at launch.
+
+---
+
 ## About the Project
 
 Inspired by Boston Dynamics' Spot, Dr. Rongzhong Li started OpenCat in his dorm at Wake Forest University in 2016. The goal was straightforward: make agile quadruped robots affordable and hackable enough for researchers, educators, and makers — not just well-funded labs.

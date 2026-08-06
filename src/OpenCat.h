@@ -1,4 +1,4 @@
-#define SOFTWARE_VERSION "N_260701"  //NyBoard + YYMMDD
+#define SOFTWARE_VERSION "N_260806"  //NyBoard + YYMMDD
 //board configuration
 // -- comment out these blocks to save program space for your own codes --
 #define BUZZER 5
@@ -203,6 +203,7 @@ byte pwm_pin[] = { 12, 11, 4, 3,
 #define SERIAL_BUFF 278               // 2 bytes
 #define SERIAL_BUFF_RAND 280          // 2 bytes
 #define BOOTUP_SOUND_STATE 282        // 1 byte
+#define MUTE_VOICE_Q 283            // 1 byte
 #define SKILLS 320                    // 1 byte for skill name length, followed by the char array for skill name
 // then followed by i(nstinct) on progmem, or n(ewbility) on progmem
 

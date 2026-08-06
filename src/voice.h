@@ -75,6 +75,12 @@ void voiceSetup() {
   listLength = min(sizeof(voiceTable) / sizeof(voiceTable[0]), MAX_CUSTOMIZED_CMD);
   PTLF("Customized voice:");
   PTL(listLength);
+  if (EEPROM.read(MUTE_VOICE_Q) == 1){
+    delay(1000); // wait for the module to be ready
+    Serial2.print("XAd");
+    while (Serial2.available() && Serial2.read())
+      ;
+  }
 }
 
 void set_voice() {  // send some control command directly to the module
@@ -86,21 +92,33 @@ void set_voice() {  // send some control command directly to the module
                     // XAf: stop learning
                     // XAg: clear the learning data
   byte c = 0;
-  while (newCmd[c++] != '~')
-    ;
-  newCmd[c - 1] = '\0';
+// not ~, not nl not carriage return
+  while (newCmd[c] != '~' && newCmd[c] != '\n' && newCmd[c] != '\r')c++; 
+  newCmd[c] = '\0';
+
   // Serial.print('X');
   // Serial.println(newCmd);
+  if (!strcmp(newCmd, "Ac")) // enter "XAc" in the serial monitor or add button "X65,99" in
+                 // the mobile app to enable voice reactions
+                 // 在串口监视器输入指令“XAc”或在手机app创建按键"X65,99"来激活语音动作
+    enableVoiceQ = true;
+  else if (!strcmp(newCmd, "Ad")) // enter "XAd" in the serial monitor or add button "X65,100" in
+                 // the mobile app to disable voice reactions
+                 // 在串口监视器输入指令“XAd”或在手机app创建按键"X65,100"来禁用语音动作
+    enableVoiceQ = false;
+
+  if (!strcmp(newCmd, "AM")||!strcmp(newCmd, "Am")){//Am and AM are not voice commands, they should not be sent to the module
+    // write the value to EEPROM to save the state
+    EEPROM.write(MUTE_VOICE_Q, !strcmp(newCmd, "AM"));
+    if (!strcmp(newCmd, "Am"))
+      strcpy(newCmd, "Ac");
+    else if (!strcmp(newCmd, "AM"))
+      strcpy(newCmd, "Ad");
+  }
   Serial2.print('X');
   Serial2.println(newCmd);
   while (Serial2.available() && Serial2.read())
     ;
-  if (!strcmp(newCmd, "Ac"))  // enter "XAc" in the serial monitor or add button "X65,99" in the mobile app to enable voice reactions
-                              // 在串口监视器输入指令“XAc”或在手机app创建按键"X65,99"来激活语音动作
-    enableVoiceQ = true;
-  else if (!strcmp(newCmd, "Ad"))  // enter "XAd" in the serial monitor or add button "X65,100" in the mobile app to disable voice reactions
-                                   // 在串口监视器输入指令“XAd”或在手机app创建按键"X65,100"来禁用语音动作
-    enableVoiceQ = false;
   PTL(token);
   resetCmd();
 }

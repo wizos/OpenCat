@@ -1,6 +1,10 @@
 # OpenCat — Open-Source Quadruped Robot Framework
 
-OpenCat is an open-source Arduino and Raspberry Pi-based framework for building and programming quadruped robots. Developed by [Petoi](https://www.petoi.com?utm_source=github&utm_medium=code&utm_campaign=github-opencat), the maker of futuristic programmable robotic pets, it powers both the Bittle robot dog and Nybble robot cat platforms.
+> **On current-gen hardware (Bittle X, Nybble Q) or starting fresh?** This repo covers the legacy NyBoard platform. Head to [OpenCatESP32](https://github.com/PetoiCamp/OpenCatEsp32-Quadruped-Robot) for current hardware and active development.
+
+🚀 **[Quaddle](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-hero-banner) — Petoi's newest OpenCat-lineage quadruped — launches on Kickstarter August 2026.** [Reserve your spot →](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-hero-banner) (details below)
+
+OpenCat is an open-source Arduino and Raspberry Pi-based framework for building and programming quadruped robots. Developed by [Petoi](https://www.petoi.com?utm_source=github&utm_medium=code&utm_campaign=github-opencat), the maker of futuristic programmable robotic pets, it's the framework behind two mini robot kits: the Bittle robot dog and the Nybble robot cat.
 
 The framework handles the hard parts — gait coordination, servo control, IMU integration — so you can focus on what you're actually building on top of it.
 
@@ -11,27 +15,34 @@ The framework handles the hard parts — gait coordination, servo control, IMU i
 
 ---
 
-## Coming Soon: Quaddle
+## Coming Soon: Quaddle mini robot dog
 ![](https://github.com/PetoiCamp/NonCodeFiles/blob/master/gif/quaddleCover.gif?raw=true)
 
-[Quaddle](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat) is Petoi's newest quadruped, launching on Kickstarter in August 2026 — a mini desk robot built on the same OpenCat lineage as Bittle and Nybble. What makes it worth a look: it's a full quadruped running on just 4 servos instead of the usual 8–12, which forces genuinely different gait-design and leg-coordination solutions to still get all four legs walking, running, and balancing. Same open platform this repo already supports for gait research, RL, and sim2real work.
+[Quaddle](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-quaddle-section) is Petoi's newest quadruped, launching on Kickstarter **August 2026** — a mini desk robot built on the same OpenCat lineage as Bittle and Nybble. What makes it worth a look: it's a full quadruped running on just 4 servos instead of the usual 8–12, which forces genuinely different gait-design and leg-coordination solutions to still get all four legs walking, running, and balancing. Its servos are also position-feedback — readable, not just drivable — which is what makes Puppet Mode possible: hand-guide the legs and record a motion directly, no code required to capture a new behavior. We'll also share 3D-printable shells and mounts for customization. Same open platform this repo already supports for gait research, RL, and sim2real work — a hands-on physical AI platform, not a toy version of the idea.
 
-**Source code is not yet public.** The ESP32-S3 code structure is similar to this repo and closer to [OpenCatESP32](https://github.com/PetoiCamp/OpenCatEsp32-Quadruped-Robot), which already powers thousands of Bittle X and Nybble Q robots in the field. Improvements and documentation are underway. We plan to release it later this year, before product delivery. Watch this repo and [r/petoi](https://www.reddit.com/r/Petoi/) for the announcement, or [reserve a spot](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat) to get notified at launch.
+**Source code is not yet public.** It's an upgraded version of the OpenCat project. The ESP32-S3 code structure is similar to this repo and closer to [OpenCatESP32](https://github.com/PetoiCamp/OpenCatEsp32-Quadruped-Robot), which already powers thousands of Bittle X and Nybble Q robots in the field. We plan to open source it before Quaddle delivery. Watch this repo and [r/petoi](https://www.reddit.com/r/Petoi/) for the announcement, or [reserve a spot](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-reserve-spot-link) to get notified at launch.
 
 ---
 
 ## About the Project
 
-Inspired by Boston Dynamics' Spot, Dr. Rongzhong Li started OpenCat in his dorm at Wake Forest University in 2016. The goal was straightforward: make agile quadruped robots affordable and hackable enough for researchers, educators, and makers — not just well-funded labs.
+Inspired by Boston Dynamics' Spot, [Dr. Rongzhong Li](https://www.linkedin.com/in/rongzhongli/) started OpenCat in his dorm at Wake Forest University in 2016. The goal was straightforward: make agile quadruped robots affordable and hackable enough for researchers, educators, and makers — not just well-funded labs.
+
+Since then:
+- **30,000+ robots shipped**, cumulative across all channels
+- **60+ countries**
+- **$1M+ raised** across two prior Kickstarter and Indiegogo campaigns
+- **20+ academic papers** cite the platform — see [Research Spotlight](https://www.petoi.com/pages/robotics-research-and-academic-applications?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
+- One of the most-starred open-source quadruped robot projects on GitHub
 
 OpenCat is now deployed across two robot platforms and used in K-12 schools, university research labs, maker spaces, and independent projects worldwide.
 
 ### Current Hardware
 
-- 🐶 [Bittle X — robot dog with voice control](https://www.petoi.com/products/petoi-robot-dog-bittle-x-voice-controlled?utm_source=github&utm_medium=code&utm_campaign=github-opencat) — current generation, BiBoard/ESP32
-- 🐱 [Nybble Q — robot cat](https://www.petoi.com/products/petoi-nybble-q-robot-cat?utm_source=github&utm_medium=code&utm_campaign=github-opencat) — current generation
+- 🐶 [Bittle X — mini robot dog & AI robotics kit with voice control](https://www.petoi.com/products/petoi-robot-dog-bittle-x-voice-controlled?utm_source=github&utm_medium=code&utm_campaign=github-opencat) — current generation, BiBoard/ESP32
+- 🐱 [Nybble Q — mini robot cat & AI robotics kit](https://www.petoi.com/products/petoi-nybble-q-robot-cat?utm_source=github&utm_medium=code&utm_campaign=github-opencat) — current generation
 
-The original [Bittle](https://www.petoi.com/collections/robots/products/petoi-bittle-robot-dog?utm_source=github&utm_medium=code&utm_campaign=github-opencat) and [Nybble](https://www.petoi.com/collections/robots/products/petoi-nybble-robot-cat?utm_source=github&utm_medium=code&utm_campaign=github-opencat) (NyBoard/ATmega328P) are discontinued but still fully supported by this codebase. This repo is the right place for NyBoard users; for ESP32/BiBoard see [OpenCatESP32](https://github.com/PetoiCamp/OpenCatESP32).
+The original [Bittle](https://www.petoi.com/collections/robots/products/petoi-bittle-robot-dog?utm_source=github&utm_medium=code&utm_campaign=github-opencat) and [Nybble](https://www.petoi.com/collections/robots/products/petoi-nybble-robot-cat?utm_source=github&utm_medium=code&utm_campaign=github-opencat) mini robots (NyBoard/ATmega328P) are discontinued but still fully supported by this codebase. This repo is the right place for NyBoard users; for ESP32/BiBoard see [OpenCatESP32](https://github.com/PetoiCamp/OpenCatEsp32-Quadruped-Robot).
 
 ![](https://github.com/PetoiCamp/NonCodeFiles/blob/master/gif/slope.gif?raw=true)
 
@@ -46,7 +57,7 @@ The original [Bittle](https://www.petoi.com/collections/robots/products/petoi-bi
 - **Sim-to-real:** experiment reinforcement learning models on an affordable robot
 - **ROS compatible:** SLAM, navigation, and perception pipelines documented by the community
 
-Whether you're teaching **robotics programming** for the first time or running a graduate-level AI experiment, the platform scales.
+Whether you're teaching **robotics programming** for the first time, building a weekend **hackathon** project, or running a graduate-level **embodied robotics** experiment, the platform scales.
 
 ---
 
@@ -64,7 +75,7 @@ Users have shipped real **robotics projects** across AI, Raspberry Pi, and resea
 - [3D-printed accessories and custom builds](https://www.petoi.com/blogs/blog/petoi-bittle-bittle-x-robots-3d-printed-robot-accessories?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 - [DIY 3D-printed robot pets on OpenCat](https://www.petoi.com/pages/3d-printed-robot-dog-robot-cat?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 
-Academic and research use cases: [Research Spotlight](https://www.petoi.com/pages/research-spotlight?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
+Academic and research use cases: [Research Spotlight](https://www.petoi.com/pages/robotics-research-and-academic-applications?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 
 ![](https://github.com/PetoiCamp/NonCodeFiles/blob/master/gif/stand.gif?raw=true)
 
@@ -81,7 +92,7 @@ Extend with:
 - [Intelligent camera module](https://www.petoi.com/products/intelligent-camera-module?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 - Raspberry Pi, Nvidia Jetson Nano, or other AI co-processors via wired/wireless connections
 
-For ESP32/BiBoard (current-gen hardware), see [OpenCatESP32](https://github.com/PetoiCamp/OpenCatESP32).
+For ESP32/BiBoard (current-gen hardware), see [OpenCatESP32](https://github.com/PetoiCamp/OpenCatEsp32-Quadruped-Robot).
 
 ---
 
@@ -170,7 +181,7 @@ Infrared remote, Petoi app, Python, or Serial Monitor. [Full play guide →](htt
 
 ## Education
 
-OpenCat is used in K-12 robotics programs, community colleges, university labs, and maker spaces:
+OpenCat shows up in **AI robotics education** across K-12 programs, community colleges, university labs, and maker spaces — hands-on **physical AI** teaching that goes beyond screen-based coding exercises:
 
 - [Robotics education showcases](https://www.petoi.com/blogs/blog/tagged/showcase+education?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 - [STEM & robotics curriculum resources](https://www.petoi.com/pages/resources-curriculum-stem-coding-robot?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
@@ -188,8 +199,10 @@ OpenCat is used in K-12 robotics programs, community colleges, university labs, 
 ## Resources
 
 - [Advanced tutorials by the community](https://www.youtube.com/playlist?list=PLHMFXft_rV6MWNGyofDzRhpatxZuUZMdg)
-- [User showcases and hacks](https://www.petoi.com/pages/petoi-open-source-extensions-user-demos-and-hacks?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
-- [Research spotlight](https://www.petoi.com/pages/research-spotlight?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
+- [GitLab embedded DevOps workshop with Bittle X](https://www.petoi.com/blogs/blog/gitlab-embedded-devops-workshop-bootcamp-with-bittle-x?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
+- [Talking Petoi robot dog with Azure AI Model Inference API integration](https://www.petoi.com/blogs/blog/petoi-robot-dog-and-azure-ai-model-inference-api-integration?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
+- [Talk to Bittle robot dog with ChatGPT](https://www.petoi.com/blogs/blog/talk-to-bittle-robot-dog-with-chatgpt?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
+- [Research spotlight](https://www.petoi.com/pages/robotics-research-and-academic-applications?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 - [Robot gallery](https://www.petoi.com/pages/robot-pet-gallery?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 - [FAQ](https://www.petoi.com/pages/faq?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 

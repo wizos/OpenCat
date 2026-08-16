@@ -206,7 +206,7 @@ OpenCat shows up in **AI robotics education** across K-12 programs, community co
 - [Robot gallery](https://www.petoi.com/pages/robot-pet-gallery?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 - [FAQ](https://www.petoi.com/pages/faq?utm_source=github&utm_medium=code&utm_campaign=github-opencat)
 
-Follow the project: [YouTube](https://www.youtube.com/@petoicamp) · [Twitter](https://twitter.com/petoicamp) · [Instagram](https://www.instagram.com/petoicamp/) · [Facebook](https://www.facebook.com/PetoiCamp/) · [LinkedIn](https://www.linkedin.com/company/33449768/admin/dashboard/)
+Follow the project: [YouTube](https://www.youtube.com/@petoicamp?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-youtube-follow) · [Twitter](https://twitter.com/petoicamp?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-twitter-follow) · [Instagram](https://www.instagram.com/petoicamp/?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-instagram-follow) · [Facebook](https://www.facebook.com/PetoiCamp/?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-facebook-follow) · [LinkedIn](https://www.linkedin.com/company/petoi/?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-linkedin-follow)
 
 ![](https://github.com/PetoiCamp/NonCodeFiles/blob/master/gif/backflip.gif?raw=true)
 

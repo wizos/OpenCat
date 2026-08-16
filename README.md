@@ -1,6 +1,6 @@
 # OpenCat — Open-Source Quadruped Robot Framework
 
-> **On current-gen hardware (Bittle X, Nybble Q) or starting fresh?** This repo covers the legacy NyBoard platform. Head to [OpenCatESP32](https://github.com/PetoiCamp/OpenCatEsp32-Quadruped-Robot) for current hardware and active development.
+> **On current-gen hardware (Bittle X, Nybble Q) or starting fresh?** This repo covers the legacy NyBoard platform. Head to [OpenCatESP32](https://github.com/PetoiCamp/OpenCatEsp32-Quadruped-Robot) for current hardware and active development, or buy [Bittle X on Amazon](https://www.amazon.com/dp/B0FNT6TSVT?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-amazon-buy-link).
 
 🚀 **[Quaddle](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-hero-banner) — Petoi's newest OpenCat-lineage quadruped — launches on Kickstarter August 2026.** [Reserve your spot →](https://prelaunch.com/projects/petoi-quaddle-your-perfect-tinkering-companion?utm_source=github&utm_medium=code&utm_campaign=github-opencat&utm_content=readme-hero-banner) (details below)
 
